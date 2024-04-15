@@ -6,3 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+kmer = {path = "../kmer"}
+io = {path = "../io"}
+memmap2 = "0.9.4"
+threadpool = "1.8.1"

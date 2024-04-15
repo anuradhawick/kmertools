@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use std::{cmp::min, iter::Iterator};
+use std::iter::Iterator;
 
 type Kmer = u64;
 // https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L9C1-L26C3
@@ -15,7 +15,7 @@ const SEQ_NT4_TABLE: [u8; 256] = [
 ];
 const REV_MASK: u64 = 3;
 
-struct KmerGenerator<'a> {
+pub struct KmerGenerator<'a> {
     seq: &'a str,
     fval: u64,
     rval: u64,
@@ -27,7 +27,7 @@ struct KmerGenerator<'a> {
 }
 
 impl<'a> KmerGenerator<'a> {
-    fn new(seq: &'a str, ksize: usize) -> Self {
+    pub fn new(seq: &'a str, ksize: usize) -> Self {
         let fval = 0;
         let rval = 0;
         let len = 0;
@@ -47,10 +47,10 @@ impl<'a> KmerGenerator<'a> {
         }
     }
 
-    fn rev_comp(&self, kmer: Kmer) -> Kmer {
+    pub fn rev_comp(kmer: Kmer, ksize: usize) -> Kmer {
         let mut rkmer = 0;
         let mut kmer = kmer;
-        for _ in 0..self.ksize as u64 {
+        for _ in 0..ksize as u64 {
             rkmer <<= 2;
             rkmer |= (kmer & 3) ^ REV_MASK;
             kmer >>= 2;
@@ -58,13 +58,13 @@ impl<'a> KmerGenerator<'a> {
         rkmer
     }
 
-    fn kmer_to_vec_pos_map(&self) -> (Vec<usize>, usize) {
+    pub fn kmer_to_vec_pos_map(ksize: usize) -> (Vec<usize>, usize) {
         // this function returns a vector of size 4 ^ k that maps to (4 ^ k) / 2 or (4 ^ k) / 2 + 4 ^ (k / 2) / 2
         // behaves as a min and perfect hash (MPHF) function that maps kmers to an index of vector we want
         let mut min_mer_set = HashSet::new();
-        let mut pos_map = vec![0_usize; 4_u64.pow(self.ksize as u32) as usize];
-        for kmer in 0..(4_u64.pow(self.ksize as u32)) {
-            let min_mer = min(kmer, self.rev_comp(kmer));
+        let mut pos_map = vec![0_usize; 4_u64.pow(ksize as u32) as usize];
+        for kmer in 0..(4_u64.pow(ksize as u32)) {
+            let min_mer = u64::min(kmer, KmerGenerator::rev_comp(kmer, ksize));
             min_mer_set.insert(min_mer);
         }
         let count = min_mer_set.len();
@@ -148,18 +148,15 @@ mod tests {
 
     #[test]
     fn rev_comp_test() {
-        let kg = KmerGenerator::new("ACGT", 4);
         // ACGT 00 01 10 11 -> ACGT 00 01 10 11
-        assert_eq!(kg.rev_comp(0b00011011), 0b00011011);
-        let kg = KmerGenerator::new("ATCGGT", 6);
+        assert_eq!(KmerGenerator::rev_comp(0b00011011, 4), 0b00011011);
         // ATCGGT 00 11 01 10 10 11 -> ACCGAT 00 01 01 10 00 11
-        assert_eq!(kg.rev_comp(0b001101101011), 0b000101100011);
+        assert_eq!(KmerGenerator::rev_comp(0b001101101011, 4), 0b000101100011);
     }
 
     #[test]
     fn pos_map_test() {
-        let kg = KmerGenerator::new("ACGT", 4);
-        let (pos_map, pos_map_size) = kg.kmer_to_vec_pos_map();
+        let (pos_map, pos_map_size) = KmerGenerator::kmer_to_vec_pos_map(4);
         let mut pos_index_count = 0;
 
         assert_eq!(pos_map_size, 136);
