@@ -151,7 +151,7 @@ mod tests {
         // ACGT 00 01 10 11 -> ACGT 00 01 10 11
         assert_eq!(KmerGenerator::rev_comp(0b00011011, 4), 0b00011011);
         // ATCGGT 00 11 01 10 10 11 -> ACCGAT 00 01 01 10 00 11
-        assert_eq!(KmerGenerator::rev_comp(0b001101101011, 4), 0b000101100011);
+        assert_eq!(KmerGenerator::rev_comp(0b001101101011, 6), 0b000101100011);
     }
 
     #[test]

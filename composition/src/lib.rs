@@ -3,10 +3,11 @@ use memmap2::{MmapMut, MmapOptions};
 use std::fs;
 use std::fs::OpenOptions;
 use std::io::BufReader;
-use std::io::{Error, Write};
-use std::sync::mpsc::channel;
-use std::sync::{Arc, Mutex};
-use threadpool::ThreadPool;
+use std::io::Error;
+use std::sync::Mutex;
+
+const NUMBER_SIZE: usize = 8;
+const THREADS: usize = 12;
 
 fn vectorise_one(
     kcount: usize,
@@ -61,7 +62,7 @@ impl<'a> CompositionComputer<'a> {
     fn count_seqs(&self) -> usize {
         let file = fs::File::open(self.in_path).unwrap();
         let reader = BufReader::new(file);
-        let seqs = io::Sequences::new("fq", reader).unwrap();
+        let seqs = io::Sequences::new(io::SeqFormat::get(self.in_path).unwrap(), reader).unwrap();
         seqs.count()
     }
 
@@ -73,7 +74,7 @@ impl<'a> CompositionComputer<'a> {
             .create(true)
             .open(self.out_path)?;
 
-        let per_line_size = self.kcount * (8 + 1);
+        let per_line_size = self.kcount * (NUMBER_SIZE + 1);
         let estimated_file_size = self.scount * per_line_size;
         file.set_len(estimated_file_size as u64)?;
         let mmap = unsafe { MmapOptions::new().len(estimated_file_size).map_mut(&file)? };
@@ -85,32 +86,42 @@ impl<'a> CompositionComputer<'a> {
         let mut mmap = self.create_writable_mmap().unwrap();
         let file = fs::File::open(self.in_path).unwrap();
         let reader = BufReader::new(file);
-        let records = Arc::new(Mutex::new(io::Sequences::new("fq", reader).unwrap()));
-        let pool: ThreadPool = ThreadPool::new(8);
-        let pos_map = self.pos_map.clone();
-        let kcount = Arc::new(self.kcount);
-        let ksize = Arc::new(self.ksize);
+        let lock = Mutex::new(0);
+        let mut records =
+            io::Sequences::new(io::SeqFormat::get(self.in_path).unwrap(), reader).unwrap();
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(THREADS)
+            .build()
+            .unwrap();
+        let mut record_index: usize = 0;
 
-        for _ in 0..8 {
-            let records_clone = Arc::clone(&records);
-            let kcount_clone = Arc::clone(&kcount);
-            let ksize_clone = Arc::clone(&ksize);
-            let pos_map_clone = pos_map.clone();
-            pool.execute(move || {
-                while let Some(record) = records_clone.lock().unwrap().next() {
-                    let kvec = vectorise_one(
-                        *kcount_clone,
-                        *ksize_clone,
-                        &pos_map_clone,
-                        &record.seq,
-                        true,
-                    );
-                    println!("processed {:?} {:#?}", record.id, &kvec.as_slice()[0..5]);
+        for _ in 0..THREADS {
+            pool.install(|| loop {
+                let (record, record_index) = {
+                    let _guard = lock.lock().unwrap();
+                    let record = records.next();
+                    let thread_record_index = record_index;
+                    record_index += 1;
+                    (record, thread_record_index)
+                };
+
+                if let Some(record) = record {
+                    let kvec =
+                        vectorise_one(self.kcount, self.ksize, &self.pos_map, &record.seq, true);
+                    let kvec_str: Vec<String> = kvec
+                        .iter()
+                        .map(|val| format!("{:.*}", NUMBER_SIZE - 2, val))
+                        .collect();
+                    let kvec_str = format!("{}\n", kvec_str.join(" "));
+                    let start_pos = kvec_str.len() * record_index;
+                    let pos = &mut mmap[start_pos..start_pos + kvec_str.bytes().len()];
+                    pos.copy_from_slice(kvec_str.as_bytes());
+                    // println!("{}", record_index);
+                } else {
+                    break;
                 }
             });
-            todo!("Implement file writing")
         }
-        pool.join();
 
         Ok(())
     }
@@ -147,7 +158,7 @@ mod tests {
     #[test]
     fn vec_mmap_test() {
         let com = CompositionComputer::new("../test_data/reads.fq", "../test_data/reads.kmers", 4);
-        let kvec = com.vectorise_mmap();
-        // assert_eq!(kvec[0], 0.5);
+        println!("{:?}", com.scount);
+        let _ = com.vectorise_mmap();
     }
 }

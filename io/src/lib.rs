@@ -9,31 +9,52 @@ pub enum RecordSet<R: BufRead> {
 }
 
 pub struct Sequences<R: BufRead> {
+    pub current_record: usize,
     pub records: RecordSet<R>,
 }
 
 pub struct Sequence {
+    pub n: usize,
     pub id: String,
     pub seq: String,
 }
 
+pub enum SeqFormat {
+    Fasta,
+    Fastq,
+}
+
+impl SeqFormat {
+    pub fn get(path: &str) -> Option<SeqFormat> {
+        if path.ends_with("fq") || path.ends_with("fastq") {
+            return Some(SeqFormat::Fastq);
+        } else if path.ends_with("fasta") || path.ends_with("fa") || path.ends_with("fna") {
+            return Some(SeqFormat::Fasta);
+        }
+        None
+    }
+}
+
 impl<R: BufRead> Sequences<R> {
-    pub fn new(format: &str, reader: R) -> Result<Self, String> {
-        if format == "fq" || format == "fastq" {
-            // let file = fs::File::open(path).map_err(|_| "Error".to_string());
-            let fastq_reader = FastqReader::new(reader);
-            // let s = fastq_reader.records();
-            Ok(Sequences {
-                records: RecordSet::Fastq(fastq_reader.records()),
-            })
-        } else if format == "fa" || format == "fasta" || format == "fna" {
-            // let file = fs::File::open(path).map_err(|_| "Error".to_string());
-            let fasta_reader = FastaReader::new(reader);
-            Ok(Sequences {
-                records: RecordSet::Fasta(fasta_reader.records()),
-            })
-        } else {
-            Err("Unsupported file format".to_string())
+    pub fn new(format: SeqFormat, reader: R) -> Result<Self, String> {
+        match format {
+            SeqFormat::Fastq => {
+                // let file = fs::File::open(path).map_err(|_| "Error".to_string());
+                let fastq_reader = FastqReader::new(reader);
+                // let s = fastq_reader.records();
+                Ok(Sequences {
+                    current_record: 0,
+                    records: RecordSet::Fastq(fastq_reader.records()),
+                })
+            }
+            SeqFormat::Fasta => {
+                // let file = fs::File::open(path).map_err(|_| "Error".to_string());
+                let fasta_reader = FastaReader::new(reader);
+                Ok(Sequences {
+                    current_record: 0,
+                    records: RecordSet::Fasta(fasta_reader.records()),
+                })
+            }
         }
     }
 }
@@ -49,7 +70,9 @@ impl<R: BufRead> Iterator for Sequences<R> {
                 let next_record = records.next();
                 if let Some(record) = next_record {
                     let record = record.unwrap();
+                    self.current_record += 1;
                     return Some(Sequence {
+                        n: self.current_record - 1,
                         id: record.id().to_string(),
                         seq: String::from_utf8(record.seq().to_owned()).unwrap(),
                     });
@@ -60,7 +83,9 @@ impl<R: BufRead> Iterator for Sequences<R> {
                 let next_record = records.next();
                 if let Some(record) = next_record {
                     let record = record.unwrap();
+                    self.current_record += 1;
                     return Some(Sequence {
+                        n: self.current_record - 1,
                         id: record.id().to_string(),
                         seq: String::from_utf8(record.seq().to_owned()).unwrap(),
                     });
@@ -80,7 +105,7 @@ mod tests {
     fn load_fq_file_test() {
         let file = fs::File::open("../test_data/reads.fq").unwrap();
         let reader = BufReader::new(file);
-        let mut seqs = Sequences::new("fq", reader).unwrap();
+        let mut seqs = Sequences::new(SeqFormat::Fastq, reader).unwrap();
         let record_1 = seqs.next().unwrap();
         assert_eq!("Read_1", record_1.id);
         assert_eq!(
@@ -101,7 +126,7 @@ mod tests {
     fn load_fa_file_test() {
         let file = fs::File::open("../test_data/reads.fa").unwrap();
         let reader = BufReader::new(file);
-        let mut seqs = Sequences::new("fa", reader).unwrap();
+        let mut seqs = Sequences::new(SeqFormat::Fasta, reader).unwrap();
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);
         assert_eq!(
@@ -122,7 +147,7 @@ mod tests {
     fn load_fa_stdin_test() {
         let input = ">Record_1\nACGTACGTACGT";
         let reader = BufReader::new(input.as_bytes());
-        let mut seqs = Sequences::new("fa", reader).unwrap();
+        let mut seqs = Sequences::new(SeqFormat::Fasta, reader).unwrap();
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);
         assert_eq!("ACGTACGTACGT", record_1.seq);

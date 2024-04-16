@@ -9,4 +9,4 @@ edition = "2021"
 kmer = {path = "../kmer"}
 io = {path = "../io"}
 memmap2 = "0.9.4"
-threadpool = "1.8.1"
+rayon = "1.10.0"
