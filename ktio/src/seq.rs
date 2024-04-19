@@ -1,16 +1,13 @@
 use bio::io::fasta::{Reader as FastaReader, Records as FastaRecords};
 use bio::io::fastq::{Reader as FastqReader, Records as FastqRecords};
-use std::io::{BufRead, BufReader};
+use std::fs::File;
+use std::io::{self, BufRead, BufReader, Read};
+use std::ops::{Deref, DerefMut};
 
 // Record set entries of type R, which implement BufRead trait (stdin/file)
 pub enum RecordSet<R: BufRead> {
     Fasta(FastaRecords<BufReader<R>>),
     Fastq(FastqRecords<BufReader<R>>),
-}
-
-pub struct Sequences<R: BufRead> {
-    pub current_record: usize,
-    pub records: RecordSet<R>,
 }
 
 pub struct Sequence {
@@ -35,26 +32,58 @@ impl SeqFormat {
     }
 }
 
+pub struct Sequences<R: BufRead> {
+    pub current_record: usize,
+    pub records: RecordSet<R>,
+}
+
 impl<R: BufRead> Sequences<R> {
     pub fn new(format: SeqFormat, reader: R) -> Result<Self, String> {
         match format {
             SeqFormat::Fastq => {
-                // let file = fs::File::open(path).map_err(|_| "Error".to_string());
                 let fastq_reader = FastqReader::new(reader);
-                // let s = fastq_reader.records();
                 Ok(Sequences {
                     current_record: 0,
                     records: RecordSet::Fastq(fastq_reader.records()),
                 })
             }
             SeqFormat::Fasta => {
-                // let file = fs::File::open(path).map_err(|_| "Error".to_string());
                 let fasta_reader = FastaReader::new(reader);
                 Ok(Sequences {
                     current_record: 0,
                     records: RecordSet::Fasta(fasta_reader.records()),
                 })
             }
+        }
+    }
+}
+
+impl<R: BufRead> Deref for Sequences<R> {
+    type Target = RecordSet<R>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.records
+    }
+}
+
+impl<R: BufRead> DerefMut for Sequences<R> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.records
+    }
+}
+
+pub fn get_reader(path: &str) -> Result<BufReader<Box<dyn Read + Sync + Send>>, String> {
+    if path == "-" {
+        let stdin = io::stdin();
+        Ok(BufReader::new(Box::new(stdin)))
+    } else {
+        let is_zip = path.ends_with(".gz");
+        let file = File::open(path).map_err(|_| format!("Unable to open: {}", path))?;
+        if is_zip {
+            let decoder = flate2::read::GzDecoder::new(file);
+            Ok(BufReader::new(Box::new(decoder)))
+        } else {
+            Ok(BufReader::new(Box::new(file)))
         }
     }
 }
@@ -99,12 +128,12 @@ impl<R: BufRead> Iterator for Sequences<R> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
+    const PATH_FQ: &str = "../test_data/reads.fq";
+    const PATH_FA: &str = "../test_data/reads.fa";
 
     #[test]
     fn load_fq_file_test() {
-        let file = fs::File::open("../test_data/reads.fq").unwrap();
-        let reader = BufReader::new(file);
+        let reader = get_reader(PATH_FQ).unwrap();
         let mut seqs = Sequences::new(SeqFormat::Fastq, reader).unwrap();
         let record_1 = seqs.next().unwrap();
         assert_eq!("Read_1", record_1.id);
@@ -124,8 +153,7 @@ mod tests {
 
     #[test]
     fn load_fa_file_test() {
-        let file = fs::File::open("../test_data/reads.fa").unwrap();
-        let reader = BufReader::new(file);
+        let reader = get_reader(PATH_FA).unwrap();
         let mut seqs = Sequences::new(SeqFormat::Fasta, reader).unwrap();
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);

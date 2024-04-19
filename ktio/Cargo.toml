@@ -1,5 +1,5 @@
 [package]
-name = "io"
+name = "ktio"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,3 +7,5 @@ edition = "2021"
 
 [dependencies]
 bio = "1.6.0"
+flate2 = "1.0.28"
+memmap2 = "0.9.4"

@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 kmer = {path = "../kmer"}
-io = {path = "../io"}
+ktio = {path = "../ktio"}
 memmap2 = "0.9.4"
 rayon = "1.10.0"
