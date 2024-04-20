@@ -16,6 +16,7 @@ pub struct Sequence {
     pub seq: String,
 }
 
+#[derive(Debug, Clone)]
 pub enum SeqFormat {
     Fasta,
     Fastq,

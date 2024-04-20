@@ -1,6 +1,5 @@
-use std::{cell::UnsafeCell, fs::OpenOptions, ptr, slice};
-
 use memmap2::{MmapMut, MmapOptions};
+use std::{cell::UnsafeCell, fs::OpenOptions, ptr};
 
 // https://stackoverflow.com/questions/65178245/how-do-i-write-to-a-mutable-slice-from-multiple-threads-at-arbitrary-indexes-wit/65182786#65182786
 #[derive(Copy, Clone)]
