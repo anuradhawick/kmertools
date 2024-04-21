@@ -57,6 +57,19 @@ impl<R: BufRead> Sequences<R> {
             }
         }
     }
+
+    pub fn seq_count(format: SeqFormat, reader: R) -> usize {
+        match format {
+            SeqFormat::Fastq => {
+                let fastq_reader = FastqReader::new(reader);
+                fastq_reader.records().count()
+            }
+            SeqFormat::Fasta => {
+                let fasta_reader = FastaReader::new(reader);
+                fasta_reader.records().count()
+            }
+        }
+    }
 }
 
 impl<R: BufRead> Deref for Sequences<R> {
@@ -70,22 +83,6 @@ impl<R: BufRead> Deref for Sequences<R> {
 impl<R: BufRead> DerefMut for Sequences<R> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.records
-    }
-}
-
-pub fn get_reader(path: &str) -> Result<BufReader<Box<dyn Read + Sync + Send>>, String> {
-    if path == "-" {
-        let stdin = io::stdin();
-        Ok(BufReader::new(Box::new(stdin)))
-    } else {
-        let is_zip = path.ends_with(".gz");
-        let file = File::open(path).map_err(|_| format!("Unable to open: {}", path))?;
-        if is_zip {
-            let decoder = flate2::read::GzDecoder::new(file);
-            Ok(BufReader::new(Box::new(decoder)))
-        } else {
-            Ok(BufReader::new(Box::new(file)))
-        }
     }
 }
 
@@ -124,6 +121,29 @@ impl<R: BufRead> Iterator for Sequences<R> {
             }
         }
     }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        unimplemented!("Count cannot be performed without always having a rewindable input stream, stdin is not!");
+    }
+}
+
+pub fn get_reader(path: &str) -> Result<BufReader<Box<dyn Read + Sync + Send>>, String> {
+    if path == "-" {
+        let stdin = io::stdin();
+        Ok(BufReader::new(Box::new(stdin)))
+    } else {
+        let is_zip = path.ends_with(".gz");
+        let file = File::open(path).map_err(|_| format!("Unable to open: {}", path))?;
+        if is_zip {
+            let decoder = flate2::read::GzDecoder::new(file);
+            Ok(BufReader::new(Box::new(decoder)))
+        } else {
+            Ok(BufReader::new(Box::new(file)))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -131,6 +151,12 @@ mod tests {
     use super::*;
     const PATH_FQ: &str = "../test_data/reads.fq";
     const PATH_FA: &str = "../test_data/reads.fa";
+
+    #[test]
+    fn seq_count_test() {
+        let reader = get_reader(PATH_FQ).unwrap();
+        assert_eq!(Sequences::seq_count(SeqFormat::Fastq, reader), 2);
+    }
 
     #[test]
     fn load_fq_file_test() {

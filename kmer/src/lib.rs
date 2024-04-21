@@ -1,7 +1,8 @@
 use std::collections::HashSet;
 use std::iter::Iterator;
 
-type Kmer = u64;
+pub type Kmer = u64;
+
 // https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L9C1-L26C3
 const SEQ_NT4_TABLE: [u8; 256] = [
     0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

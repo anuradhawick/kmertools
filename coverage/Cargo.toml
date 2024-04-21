@@ -6,3 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+ktio = { path = "../ktio" }
+kmer = { path = "../kmer" }
+dashmap = "5.5.3"
+rayon = "1.10.0"

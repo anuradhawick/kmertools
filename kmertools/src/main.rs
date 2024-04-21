@@ -1,6 +1,6 @@
 use args::CompositionCommands;
 use clap::Parser;
-use composition::oligo::CompositionComputer;
+use composition::oligo::OligoComputer;
 mod args;
 
 fn main() {
@@ -9,8 +9,7 @@ fn main() {
     match cli.command {
         args::Commands::Comp { command } => match command {
             CompositionCommands::Oligo(command) => {
-                let mut com =
-                    CompositionComputer::new(&command.input, &command.output, command.k_size);
+                let mut com = OligoComputer::new(&command.input, &command.output, command.k_size);
                 if command.threads > 0 {
                     com.set_threads(command.threads);
                 }

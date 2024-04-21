@@ -3,14 +3,14 @@ use ktio::mmap::MMWriter;
 use ktio::seq::{SeqFormat, Sequences};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::fs::File;
-use std::io::{BufWriter, Write};
+use std::io::{BufRead, BufWriter, Write};
 use std::sync::Arc;
 use std::sync::Mutex;
 
 const NUMBER_SIZE: usize = 8;
 const GB_4: usize = 2 << 30;
 
-pub struct CompositionComputer<'a> {
+pub struct OligoComputer<'a> {
     in_path: &'a str,
     out_path: &'a str,
     ksize: usize,
@@ -21,7 +21,7 @@ pub struct CompositionComputer<'a> {
     delim: String,
 }
 
-impl<'a> CompositionComputer<'a> {
+impl<'a> OligoComputer<'a> {
     pub fn new(in_path: &'a str, out_path: &'a str, ksize: usize) -> Self {
         let (pos_map, kcount) = KmerGenerator::kmer_to_vec_pos_map(ksize);
         Self {
@@ -56,8 +56,15 @@ impl<'a> CompositionComputer<'a> {
     }
 
     fn vectorise_batch(&self) -> Result<(), String> {
-        let reader = ktio::seq::get_reader(self.in_path).unwrap();
-        let format = SeqFormat::get("stdin.fa").unwrap();
+        let mut reader = ktio::seq::get_reader(self.in_path).unwrap();
+        let buffer = reader
+            .fill_buf()
+            .map_err(|_| String::from("Invalid stream"))?;
+        let format = if buffer[0] == b'>' {
+            SeqFormat::Fasta
+        } else {
+            SeqFormat::Fastq
+        };
         let records = Sequences::new(format, reader).unwrap();
         let file = File::create(self.out_path)
             .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
@@ -125,8 +132,7 @@ impl<'a> CompositionComputer<'a> {
         let estimated_file_size = {
             let format = SeqFormat::get(self.in_path).unwrap();
             let reader = ktio::seq::get_reader(self.in_path).unwrap();
-            let records = Sequences::new(format, reader).unwrap();
-            records.count()
+            Sequences::seq_count(format, reader)
         } * per_line_size;
         // memmap
         let mut mmap = ktio::mmap::mmap_file_for_writing(self.out_path, estimated_file_size)?;
@@ -194,29 +200,21 @@ impl<'a> CompositionComputer<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use std::fs;
 
-    use super::*;
-
-    #[test]
-    fn seq_count_test() {
-        let path = "../test_data/reads.fq";
-        let reader = ktio::seq::get_reader(path).unwrap();
-        let seqs = Sequences::new(SeqFormat::get(path).unwrap(), reader).unwrap();
-        assert_eq!(seqs.count(), 2);
-    }
+    const PATH_FQ: &str = "../test_data/reads.fq";
 
     #[test]
     fn kmer_vec_norm_test() {
-        let com = CompositionComputer::new("../test_data/reads.fq", "../test_data/reads.kmers", 4);
+        let com = OligoComputer::new(PATH_FQ, "../test_data/reads.kmers", 4);
         let kvec = com.vectorise_one("AAAANGAGA");
         assert_eq!(kvec[0], 0.5);
     }
 
     #[test]
     fn kmer_vec_unnorm_test() {
-        let mut com =
-            CompositionComputer::new("../test_data/reads.fq", "../test_data/reads.kmers", 4);
+        let mut com = OligoComputer::new(PATH_FQ, "../test_data/reads.kmers", 4);
         com.set_norm(false);
         let kvec = com.vectorise_one("AAAANGAGA");
         assert_eq!(kvec[0], 1.0);
@@ -224,8 +222,7 @@ mod tests {
 
     #[test]
     fn vec_mmap_test() {
-        let com =
-            CompositionComputer::new("../test_data/reads.fq", "../test_data/computed_fa.kmers", 4);
+        let com = OligoComputer::new(PATH_FQ, "../test_data/computed_fa.kmers", 4);
         let _ = com.vectorise_mmap();
         assert_eq!(
             fs::read("../test_data/expected_fa.kmers").unwrap(),
@@ -236,17 +233,34 @@ mod tests {
     #[test]
     fn vec_mmap_threaded_test() {
         for _ in 0..4 {
-            let mut com = CompositionComputer::new(
-                "../test_data/reads.fq",
-                "../test_data/computed_fa.kmers",
-                4,
-            );
+            let mut com = OligoComputer::new(PATH_FQ, "../test_data/computed_fa_mmap.kmers", 4);
             com.set_threads(8);
             let _ = com.vectorise_mmap();
             assert_eq!(
                 fs::read("../test_data/expected_fa.kmers").unwrap(),
-                fs::read("../test_data/computed_fa.kmers").unwrap()
+                fs::read("../test_data/computed_fa_mmap.kmers").unwrap()
             )
         }
+    }
+
+    #[test]
+    fn vec_batch_threaded_test() {
+        // let mut com = OligoComputer::new("-", "../test_data/computed_fa_batched.kmers", 4);
+        // com.set_threads(8);
+        // let original_stdin = io::stdin();
+        // let (mut reader, mut writer) = os_pipe::pipe().unwrap();
+        // write!(writer, "{:?}", fs::read(PATH_FQ).unwrap()).unwrap();
+
+        // unsafe {
+        //     let stdin = io::stdin();
+        //     let mut handle = stdin.lock();
+        //     *handle = BufReader::new(Box::new(reader));
+        // }
+
+        // let _ = com.vectorise_batch();
+        // assert_eq!(
+        //     fs::read("../test_data/expected_fa.kmers").unwrap(),
+        //     fs::read("../test_data/computed_fa_batched.kmers").unwrap()
+        // )
     }
 }
