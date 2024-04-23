@@ -117,15 +117,15 @@ pub struct CoverageCommand {
 
     /// Input file path, for k-mer counting
     #[arg(short, long)]
-    pub alt_input: String,
+    pub alt_input: Option<String>,
 
     /// Output vectors path
     #[arg(short, long)]
     pub output: String,
 
     /// K size for the coverage histogram
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31))]
-    pub k_size: usize,
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31), default_value_t = 15)]
+    pub k_size: u64,
 
     /// Output type to write
     ///     csv: comma separated
@@ -135,12 +135,12 @@ pub struct CoverageCommand {
     pub preset: Preset,
 
     /// Bin size for the coverage histogram
-    #[arg(short = 's', long = "bin-size", default_value_t = 32)]
-    pub bin_size: usize,
+    #[arg(short = 's', long = "bin-size", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
+    pub bin_size: u64,
 
     /// Number of bins for the coverage histogram
-    #[arg(short = 'c', long = "bin-count", default_value_t = 16)]
-    pub bin_count: usize,
+    #[arg(short = 'c', long = "bin-count", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
+    pub bin_count: u64,
 
     /// Disable normalisation and output raw counts
     #[arg(long)]

@@ -19,7 +19,7 @@ impl<'a, T> MMWriter<'a, T> {
 
     /// # Safety
     /// During multi threading, one must ensure i is mutually exclusive.
-    /// It is UB if two threads write to the same index without
+    /// It is undefined behaviour if two threads write to the same index without
     /// synchronization.
     pub unsafe fn write_at(&self, data: &[T], pos: usize)
     where

@@ -8,11 +8,11 @@ use std::sync::Arc;
 use std::sync::Mutex;
 
 const NUMBER_SIZE: usize = 8;
-const GB_4: usize = 2 << 30;
+const GB_4: usize = 4 * (1 << 30);
 
-pub struct OligoComputer<'a> {
-    in_path: &'a str,
-    out_path: &'a str,
+pub struct OligoComputer {
+    in_path: String,
+    out_path: String,
     ksize: usize,
     kcount: usize,
     threads: usize,
@@ -21,8 +21,8 @@ pub struct OligoComputer<'a> {
     delim: String,
 }
 
-impl<'a> OligoComputer<'a> {
-    pub fn new(in_path: &'a str, out_path: &'a str, ksize: usize) -> Self {
+impl OligoComputer {
+    pub fn new(in_path: String, out_path: String, ksize: usize) -> Self {
         let (pos_map, kcount) = KmerGenerator::kmer_to_vec_pos_map(ksize);
         Self {
             in_path,
@@ -56,7 +56,7 @@ impl<'a> OligoComputer<'a> {
     }
 
     fn vectorise_batch(&self) -> Result<(), String> {
-        let mut reader = ktio::seq::get_reader(self.in_path).unwrap();
+        let mut reader = ktio::seq::get_reader(&self.in_path).unwrap();
         let buffer = reader
             .fill_buf()
             .map_err(|_| String::from("Invalid stream"))?;
@@ -66,7 +66,7 @@ impl<'a> OligoComputer<'a> {
             SeqFormat::Fastq
         };
         let records = Sequences::new(format, reader).unwrap();
-        let file = File::create(self.out_path)
+        let file = File::create(&self.out_path)
             .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
         let mut out_buffer = BufWriter::new(file);
         let pool = rayon::ThreadPoolBuilder::new()
@@ -130,15 +130,15 @@ impl<'a> OligoComputer<'a> {
         let per_line_size = self.kcount * (NUMBER_SIZE + 1);
         // pre-calculate file size
         let estimated_file_size = {
-            let format = SeqFormat::get(self.in_path).unwrap();
-            let reader = ktio::seq::get_reader(self.in_path).unwrap();
+            let format = SeqFormat::get(&self.in_path).unwrap();
+            let reader = ktio::seq::get_reader(&self.in_path).unwrap();
             Sequences::seq_count(format, reader)
         } * per_line_size;
         // memmap
-        let mut mmap = ktio::mmap::mmap_file_for_writing(self.out_path, estimated_file_size)?;
+        let mut mmap = ktio::mmap::mmap_file_for_writing(&self.out_path, estimated_file_size)?;
         // get reader
-        let format = SeqFormat::get(self.in_path).unwrap();
-        let reader = ktio::seq::get_reader(self.in_path).unwrap();
+        let format = SeqFormat::get(&self.in_path).unwrap();
+        let reader = ktio::seq::get_reader(&self.in_path).unwrap();
         let records = Sequences::new(format, reader).unwrap();
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
@@ -207,14 +207,15 @@ mod tests {
 
     #[test]
     fn kmer_vec_norm_test() {
-        let com = OligoComputer::new(PATH_FQ, "../test_data/reads.kmers", 4);
+        let com = OligoComputer::new(PATH_FQ.to_owned(), "../test_data/reads.kmers".to_owned(), 4);
         let kvec = com.vectorise_one("AAAANGAGA");
         assert_eq!(kvec[0], 0.5);
     }
 
     #[test]
     fn kmer_vec_unnorm_test() {
-        let mut com = OligoComputer::new(PATH_FQ, "../test_data/reads.kmers", 4);
+        let mut com =
+            OligoComputer::new(PATH_FQ.to_owned(), "../test_data/reads.kmers".to_owned(), 4);
         com.set_norm(false);
         let kvec = com.vectorise_one("AAAANGAGA");
         assert_eq!(kvec[0], 1.0);
@@ -222,7 +223,11 @@ mod tests {
 
     #[test]
     fn vec_mmap_test() {
-        let com = OligoComputer::new(PATH_FQ, "../test_data/computed_fa.kmers", 4);
+        let com = OligoComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/computed_fa.kmers".to_owned(),
+            4,
+        );
         let _ = com.vectorise_mmap();
         assert_eq!(
             fs::read("../test_data/expected_fa.kmers").unwrap(),
@@ -233,7 +238,11 @@ mod tests {
     #[test]
     fn vec_mmap_threaded_test() {
         for _ in 0..4 {
-            let mut com = OligoComputer::new(PATH_FQ, "../test_data/computed_fa_mmap.kmers", 4);
+            let mut com = OligoComputer::new(
+                PATH_FQ.to_owned(),
+                "../test_data/computed_fa_mmap.kmers".to_owned(),
+                4,
+            );
             com.set_threads(8);
             let _ = com.vectorise_mmap();
             assert_eq!(

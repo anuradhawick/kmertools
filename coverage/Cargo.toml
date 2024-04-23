@@ -1,12 +1,12 @@
 [package]
 name = "coverage"
-version = "0.1.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 ktio = { path = "../ktio" }
 kmer = { path = "../kmer" }
-dashmap = "5.5.3"
 rayon = "1.10.0"
+scc = { version = "2.1.0", features = ["serde"] }

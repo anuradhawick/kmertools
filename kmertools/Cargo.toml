@@ -1,10 +1,10 @@
 [package]
 name = "kmertools"
-version = "0.1.0"
-edition = "2021"
-authors = ["Anuradha Wickramarachchi anuradhawick@gmail.com", "Vijini Mallawaarachchi viji.mallawaarachchi@gmail.com"]
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
 composition = {path = "../composition"}
+coverage = {path = "../coverage"}

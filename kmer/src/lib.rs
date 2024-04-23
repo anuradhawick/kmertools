@@ -135,16 +135,19 @@ mod tests {
 
     #[test]
     fn kmers_generated_ambiguous() {
-        let mut kg = KmerGenerator::new("ACNGT", 2);
+        let mut kg = KmerGenerator::new("ACNGTT", 2);
         let kmer1 = kg.next();
         let kmer2 = kg.next();
         let kmer3 = kg.next();
+        let kmer4 = kg.next();
         // AC 00 01, GT 10 11
         assert_eq!(kmer1, Some((1, 11)));
         // GT 10 11, AC 00 01
         assert_eq!(kmer2, Some((11, 1)));
+        // TT 11 11, AA 00 00
+        assert_eq!(kmer3, Some((15, 0)));
         // None
-        assert_eq!(kmer3, None);
+        assert_eq!(kmer4, None);
     }
 
     #[test]

@@ -1,4 +1,7 @@
 [workspace]
+package.version = "0.1.0"
+package.edition = "2021"
+package.authors = ["Anuradha Wickramarachchi anuradhawick@gmail.com", "Vijini Mallawaarachchi viji.mallawaarachchi@gmail.com"]
 
 members = ["composition", "coverage", "kmertools", "kmer", "ktio"]
 resolver = "2"
