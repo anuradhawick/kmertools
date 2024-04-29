@@ -63,7 +63,7 @@ pub struct OligoCommand {
     pub counts: bool,
 
     /// Set k-mer size
-    #[arg(long, default_value_t = 3)]
+    #[arg(short, long, default_value_t = 3)]
     pub k_size: usize,
 
     /// Output type to write
@@ -93,7 +93,7 @@ pub struct CGRCommand {
     pub counts: bool,
 
     /// Set k-mer size
-    #[arg(long, default_value_t = 3)]
+    #[arg(short, long, default_value_t = 3)]
     pub k_size: usize,
 
     /// Output type to write

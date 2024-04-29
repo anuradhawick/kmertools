@@ -13,10 +13,15 @@ pub enum RecordSet<R: BufRead> {
 pub struct Sequence {
     pub n: usize,
     pub id: String,
-    pub seq: String,
+    pub seq: Vec<u8>,
 }
 
-#[derive(Debug, Clone)]
+pub struct SeqStats {
+    pub seq_count: usize,
+    pub total_length: usize,
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum SeqFormat {
     Fasta,
     Fastq,
@@ -58,16 +63,30 @@ impl<R: BufRead> Sequences<R> {
         }
     }
 
-    pub fn seq_count(format: SeqFormat, reader: R) -> usize {
+    pub fn seq_stats(format: SeqFormat, reader: R) -> SeqStats {
+        let mut total_length = 0_usize;
+        let mut seq_count = 0_usize;
+
         match format {
             SeqFormat::Fastq => {
                 let fastq_reader = FastqReader::new(reader);
-                fastq_reader.records().count()
+                for record in fastq_reader.records() {
+                    total_length += record.unwrap().seq().len();
+                    seq_count += 1;
+                }
             }
             SeqFormat::Fasta => {
                 let fasta_reader = FastaReader::new(reader);
-                fasta_reader.records().count()
+                for record in fasta_reader.records() {
+                    total_length += record.unwrap().seq().len();
+                    seq_count += 1;
+                }
             }
+        }
+
+        SeqStats {
+            seq_count,
+            total_length,
         }
     }
 }
@@ -101,7 +120,7 @@ impl<R: BufRead> Iterator for Sequences<R> {
                     return Some(Sequence {
                         n: self.current_record - 1,
                         id: record.id().to_string(),
-                        seq: String::from_utf8(record.seq().to_owned()).unwrap(),
+                        seq: record.seq().to_vec(),
                     });
                 }
                 None
@@ -114,7 +133,7 @@ impl<R: BufRead> Iterator for Sequences<R> {
                     return Some(Sequence {
                         n: self.current_record - 1,
                         id: record.id().to_string(),
-                        seq: String::from_utf8(record.seq().to_owned()).unwrap(),
+                        seq: record.seq().to_vec(),
                     });
                 }
                 None
@@ -153,9 +172,11 @@ mod tests {
     const PATH_FA: &str = "../test_data/reads.fa";
 
     #[test]
-    fn seq_count_test() {
+    fn seq_stats_test() {
         let reader = get_reader(PATH_FQ).unwrap();
-        assert_eq!(Sequences::seq_count(SeqFormat::Fastq, reader), 2);
+        let stats = Sequences::seq_stats(SeqFormat::Fastq, reader);
+        assert_eq!(stats.seq_count, 2);
+        assert_eq!(stats.total_length, 144);
     }
 
     #[test]
@@ -165,13 +186,13 @@ mod tests {
         let record_1 = seqs.next().unwrap();
         assert_eq!("Read_1", record_1.id);
         assert_eq!(
-            "GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA",
+            b"GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA".to_vec(),
             record_1.seq
         );
         let record_2 = seqs.next().unwrap();
         assert_eq!("Read_2", record_2.id);
         assert_eq!(
-            "GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT",
+            b"GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT".to_vec(),
             record_2.seq
         );
         let finish = seqs.next();
@@ -185,13 +206,13 @@ mod tests {
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);
         assert_eq!(
-            "GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA",
+            b"GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA".to_vec(),
             record_1.seq
         );
         let record_2 = seqs.next().unwrap();
         assert_eq!("Record_2", record_2.id);
         assert_eq!(
-            "GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT",
+            b"GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT".to_vec(),
             record_2.seq
         );
         let finish = seqs.next();
@@ -205,7 +226,7 @@ mod tests {
         let mut seqs = Sequences::new(SeqFormat::Fasta, reader).unwrap();
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);
-        assert_eq!("ACGTACGTACGT", record_1.seq);
+        assert_eq!(b"ACGTACGTACGT".to_vec(), record_1.seq);
         let finish = seqs.next();
         assert!(finish.is_none());
     }

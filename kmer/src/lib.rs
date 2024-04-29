@@ -17,7 +17,7 @@ const SEQ_NT4_TABLE: [u8; 256] = [
 const REV_MASK: u64 = 3;
 
 pub struct KmerGenerator<'a> {
-    seq: &'a str,
+    seq: &'a [u8],
     fval: u64,
     rval: u64,
     len: usize,
@@ -28,7 +28,7 @@ pub struct KmerGenerator<'a> {
 }
 
 impl<'a> KmerGenerator<'a> {
-    pub fn new(seq: &'a str, ksize: usize) -> Self {
+    pub fn new(seq: &'a [u8], ksize: usize) -> Self {
         let fval = 0;
         let rval = 0;
         let len = 0;
@@ -89,7 +89,7 @@ impl<'a> Iterator for KmerGenerator<'a> {
             if self.pos == self.seq.len() {
                 return None;
             }
-            let pos_char = self.seq.as_bytes()[self.pos];
+            let pos_char = self.seq[self.pos];
             let pos_f_val = SEQ_NT4_TABLE[pos_char as usize] as u64;
             let pos_r_val = pos_f_val ^ REV_MASK;
             self.pos += 1;
@@ -118,7 +118,7 @@ mod tests {
 
     #[test]
     fn kmers_generated() {
-        let mut kg = KmerGenerator::new("ACGT", 2);
+        let mut kg = KmerGenerator::new(b"ACGT", 2);
         let kmer1 = kg.next();
         let kmer2 = kg.next();
         let kmer3 = kg.next();
@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn kmers_generated_ambiguous() {
-        let mut kg = KmerGenerator::new("ACNGTT", 2);
+        let mut kg = KmerGenerator::new(b"ACNGTT", 2);
         let kmer1 = kg.next();
         let kmer2 = kg.next();
         let kmer3 = kg.next();

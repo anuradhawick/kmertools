@@ -1,11 +1,13 @@
 [package]
-name = "composition"
+name = "counter"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
 [dependencies]
 kmer = { path = "../kmer" }
 ktio = { path = "../ktio" }
-memmap2 = "0.9.4"
 rayon = "1.10.0"
+scc = "2.1.0"

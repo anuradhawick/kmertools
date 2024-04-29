@@ -11,7 +11,7 @@ use std::{
 };
 
 const NUMBER_SIZE: usize = 8;
-const MB_100: usize = 100 * (1 << 20);
+const MB_SIZE: usize = 5000 * (1 << 20);
 
 pub struct CovComputer {
     in_path: String,
@@ -97,7 +97,7 @@ impl CovComputer {
                                 total += record.seq.len();
                                 buffer.push(record.seq);
 
-                                if total >= MB_100 {
+                                if total >= MB_SIZE {
                                     break;
                                 }
                             }
@@ -139,7 +139,7 @@ impl CovComputer {
         let estimated_file_size = {
             let format = SeqFormat::get(&self.in_path).unwrap();
             let reader = ktio::seq::get_reader(&self.in_path).unwrap();
-            Sequences::seq_count(format, reader)
+            Sequences::seq_stats(format, reader).seq_count
         } * per_line_size;
         // memmap
         let mut mmap = ktio::mmap::mmap_file_for_writing(&self.out_path, estimated_file_size)?;
@@ -184,7 +184,7 @@ impl CovComputer {
         Ok(())
     }
 
-    fn vectorise_one(&self, seq: &str) -> Vec<f64> {
+    fn vectorise_one(&self, seq: &[u8]) -> Vec<f64> {
         let mut vec = vec![0_f64; self.bin_count];
         let mut total = 0_f64;
 
@@ -229,7 +229,7 @@ mod tests {
     fn kmer_vec_test() {
         let cov = CovComputer::new(PATH_FQ.to_owned(), "".to_owned(), 4, 2, 5);
         cov.build_table().unwrap();
-        let vec = cov.vectorise_one("ACGTNTTTT");
+        let vec = cov.vectorise_one(b"ACGTNTTTT");
         assert_eq!(vec, vec![0.25, 0.75, 0.0, 0.0, 0.0,]);
     }
 

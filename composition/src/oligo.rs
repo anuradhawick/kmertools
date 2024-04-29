@@ -132,7 +132,7 @@ impl OligoComputer {
         let estimated_file_size = {
             let format = SeqFormat::get(&self.in_path).unwrap();
             let reader = ktio::seq::get_reader(&self.in_path).unwrap();
-            Sequences::seq_count(format, reader)
+            Sequences::seq_stats(format, reader).seq_count
         } * per_line_size;
         // memmap
         let mut mmap = ktio::mmap::mmap_file_for_writing(&self.out_path, estimated_file_size)?;
@@ -140,7 +140,7 @@ impl OligoComputer {
         let format = SeqFormat::get(&self.in_path).unwrap();
         let reader = ktio::seq::get_reader(&self.in_path).unwrap();
         let records = Sequences::new(format, reader).unwrap();
-        let pool = rayon::ThreadPoolBuilder::new()
+        let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()
             .unwrap();
@@ -177,7 +177,7 @@ impl OligoComputer {
         Ok(())
     }
 
-    fn vectorise_one(&self, seq: &str) -> Vec<f64> {
+    fn vectorise_one(&self, seq: &[u8]) -> Vec<f64> {
         let mut vec = vec![0_f64; self.kcount];
         let mut total = 0_f64;
 
@@ -208,7 +208,7 @@ mod tests {
     #[test]
     fn kmer_vec_norm_test() {
         let com = OligoComputer::new(PATH_FQ.to_owned(), "../test_data/reads.kmers".to_owned(), 4);
-        let kvec = com.vectorise_one("AAAANGAGA");
+        let kvec = com.vectorise_one(b"AAAANGAGA");
         assert_eq!(kvec[0], 0.5);
     }
 
@@ -217,7 +217,7 @@ mod tests {
         let mut com =
             OligoComputer::new(PATH_FQ.to_owned(), "../test_data/reads.kmers".to_owned(), 4);
         com.set_norm(false);
-        let kvec = com.vectorise_one("AAAANGAGA");
+        let kvec = com.vectorise_one(b"AAAANGAGA");
         assert_eq!(kvec[0], 1.0);
     }
 
