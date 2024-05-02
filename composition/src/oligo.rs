@@ -1,4 +1,4 @@
-use kmer::KmerGenerator;
+use kmer::kmer::KmerGenerator;
 use ktio::mmap::MMWriter;
 use ktio::seq::{SeqFormat, Sequences};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};

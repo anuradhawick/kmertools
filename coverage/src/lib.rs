@@ -1,4 +1,4 @@
-use kmer::KmerGenerator;
+use kmer::{kmer::KmerGenerator, Kmer};
 use ktio::{
     mmap::MMWriter,
     seq::{get_reader, SeqFormat, Sequences},
@@ -18,7 +18,7 @@ pub struct CovComputer {
     in_path_kmer: String,
     out_path: String,
     ksize: usize,
-    kmer_counts: SccMap<kmer::Kmer, f64>,
+    kmer_counts: SccMap<Kmer, f64>,
     threads: usize,
     norm: bool,
     delim: String,
@@ -88,7 +88,7 @@ impl CovComputer {
                 scope.spawn(move |_| {
                     let mut buffer = Vec::with_capacity(1000);
                     let mut total = 0_usize;
-                    let mut buffer_map: HashMap<kmer::Kmer, f64> = HashMap::new();
+                    let mut buffer_map: HashMap<Kmer, f64> = HashMap::new();
                     loop {
                         {
                             let mut records = records_arc_clone.lock().unwrap();
@@ -108,7 +108,7 @@ impl CovComputer {
                                 let gen = KmerGenerator::new(seq, self.ksize);
                                 for (fmer, rmer) in gen {
                                     buffer_map
-                                        .entry(kmer::Kmer::min(fmer, rmer))
+                                        .entry(Kmer::min(fmer, rmer))
                                         .and_modify(|val| *val += 1_f64)
                                         .or_insert(1_f64);
                                 }
