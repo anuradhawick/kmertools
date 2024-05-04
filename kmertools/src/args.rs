@@ -37,6 +37,8 @@ pub enum Commands {
     },
     /// Generates coverage histogram based on the reads
     Cov(CoverageCommand),
+    /// Bin reads using minimisers
+    Min(MinimiserCommand),
 }
 
 // COMPOSITION
@@ -67,10 +69,7 @@ pub struct OligoCommand {
     pub k_size: usize,
 
     /// Output type to write
-    ///     csv: comma separated
-    ///     tsv: tab separated
-    ///     spc: space separated
-    #[clap(value_enum, short, long, verbatim_doc_comment, default_value_t = Preset::Spc)]
+    #[clap(value_enum, short, long, default_value_t = Preset::Spc)]
     pub preset: Preset,
 
     /// Thread count for computations 0=auto
@@ -97,10 +96,7 @@ pub struct CGRCommand {
     pub k_size: usize,
 
     /// Output type to write
-    ///     csv: comma separated
-    ///     tsv: tab separated
-    ///     spc: space separated
-    #[clap(value_enum, short, long, verbatim_doc_comment, default_value_t = Preset::Spc)]
+    #[clap(value_enum, short, long, default_value_t = Preset::Spc)]
     pub preset: Preset,
 
     /// Thread count for computations 0=auto
@@ -128,10 +124,7 @@ pub struct CoverageCommand {
     pub k_size: u64,
 
     /// Output type to write
-    ///     csv: comma separated
-    ///     tsv: tab separated
-    ///     spc: space separated
-    #[clap(value_enum, short, long, verbatim_doc_comment, default_value_t = Preset::Spc)]
+    #[clap(value_enum, short, long, default_value_t = Preset::Spc)]
     pub preset: Preset,
 
     /// Bin size for the coverage histogram
@@ -145,6 +138,33 @@ pub struct CoverageCommand {
     /// Disable normalisation and output raw counts
     #[arg(long)]
     pub counts: bool,
+
+    /// Thread count for computations 0=auto
+    #[arg(short, long, default_value_t = 0)]
+    pub threads: usize,
+}
+
+// MINIMISERS
+#[derive(Debug, Args)]
+pub struct MinimiserCommand {
+    /// Input file path
+    #[arg(short, long)]
+    pub input: String,
+
+    /// Output vectors path
+    #[arg(short, long)]
+    pub output: String,
+
+    /// Minimiser size
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31), default_value_t = 10)]
+    pub m_size: u64,
+
+    /// Window size
+    ///
+    /// 0 - emits one minimiser per sequence (useful for sequencing reads)
+    /// w_size must be longer than m_size and must not exceed 30
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(0..), verbatim_doc_comment, default_value_t = 0)]
+    pub w_size: u64,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]

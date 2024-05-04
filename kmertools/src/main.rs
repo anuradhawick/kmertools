@@ -2,6 +2,7 @@ use args::CompositionCommands;
 use clap::Parser;
 use composition::oligo::OligoComputer;
 use coverage::CovComputer;
+use misc::minimisers;
 mod args;
 
 fn main() {
@@ -52,6 +53,23 @@ fn main() {
             if let Err(e) = cov.vectorise() {
                 println!("Error: {}", e);
             }
+        }
+        args::Commands::Min(command) => {
+            if command.w_size <= command.m_size && command.w_size > 0 {
+                println!("Window size must be longer than minimiser size!");
+                return;
+            }
+            if command.m_size >= 31 {
+                println!("Minimisers longer than 30 bases not allowed!");
+                return;
+            }
+            minimisers::bin_sequences(
+                command.w_size as usize,
+                command.m_size as usize,
+                &command.input,
+                &command.output,
+                command.threads,
+            )
         }
     }
 }

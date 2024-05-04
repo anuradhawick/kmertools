@@ -19,12 +19,8 @@ const REV_MASK: u64 = 3;
 pub struct MinimiserGenerator<'a> {
     seq: &'a [u8],
     pos: usize,
-    ksize: usize,
+    wsize: usize,
     msize: usize,
-    k_mask: u64,
-    k_val_f: u64,
-    k_val_r: u64,
-    k_val_l: usize,
     m_mask: u64,
     m_window_start: usize,
     m_window_end: usize,
@@ -33,23 +29,18 @@ pub struct MinimiserGenerator<'a> {
     m_val_l: usize,
     m_active: u64,
     m_shift: u64,
-    k_shift: u64,
     buff: VecDeque<u64>,
     buff_pos: usize,
 }
 
 impl<'a> MinimiserGenerator<'a> {
-    pub fn new(seq: &'a [u8], ksize: usize, msize: usize) -> Self {
+    pub fn new(seq: &'a [u8], wsize: usize, msize: usize) -> Self {
         MinimiserGenerator {
             seq,
-            ksize,
+            wsize,
             msize,
             pos: 0,
             buff_pos: 0,
-            k_mask: (1_u64 << (2 * ksize)) - 1,
-            k_val_f: 0,
-            k_val_r: 0,
-            k_val_l: 0,
             m_active: u64::MAX,
             m_mask: (1_u64 << (2 * msize)) - 1,
             m_val_f: 0,
@@ -57,8 +48,7 @@ impl<'a> MinimiserGenerator<'a> {
             m_val_l: 0,
             m_window_end: 0,
             m_window_start: 0,
-            buff: VecDeque::with_capacity(ksize - msize + 1),
-            k_shift: 2 * (ksize - 1) as u64,
+            buff: VecDeque::with_capacity(wsize - msize + 1),
             m_shift: 2 * (msize - 1) as u64,
         }
     }
@@ -69,8 +59,11 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
     type Item = (Kmer, usize, usize);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut min_m_val = 0;
-        // valid base
+        let mut min_m_val: u64;
+        let prev_m_val: u64;
+        let prev_w_start: usize;
+        let prev_w_end: usize;
+
         loop {
             if self.pos == self.seq.len() {
                 return None;
@@ -81,10 +74,6 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
 
             if pos_f_val < 4 {
                 // non ambiguous
-                // kmer
-                self.k_val_f = ((self.k_val_f << 2) | pos_f_val) & self.k_mask;
-                self.k_val_r = (self.k_val_r >> 2) | (pos_r_val << self.k_shift);
-                self.k_val_l += 1;
                 // minimiser
                 self.m_val_f = ((self.m_val_f << 2) | pos_f_val) & self.m_mask;
                 self.m_val_r = (self.m_val_r >> 2) | (pos_r_val << self.m_shift);
@@ -92,10 +81,6 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
             } else {
                 // ambiguous
                 self.buff_pos = 0;
-                self.k_mask = (1_u64 << (2 * self.ksize)) - 1;
-                self.k_val_f = 0;
-                self.k_val_r = 0;
-                self.k_val_l = 0;
                 self.m_active = u64::MAX;
                 self.m_mask = (1_u64 << (2 * self.msize)) - 1;
                 self.m_val_f = 0;
@@ -114,12 +99,11 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
             }
 
             self.m_val_l -= 1;
-            self.k_val_l -= 1;
+            // self.w_val_l -= 1;
             min_m_val = min(self.m_val_f, self.m_val_r);
-            // min_m_val = self.m_val_f;
 
             // minimiser buffer is full
-            if self.buff.len() == self.ksize - self.msize + 1 {
+            if self.buff.len() == self.wsize - self.msize + 1 {
                 // pop and push to avoid resizing
                 self.buff.pop_front();
                 self.buff.push_back(min_m_val);
@@ -136,39 +120,25 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
                     // minimiser changed
                     if new_min != self.m_active {
                         self.m_window_end = self.pos;
-                        println!(
-                            "Window start:{:5} end:{:5} - {:60} : {:10}",
-                            self.m_window_start,
-                            self.m_window_end,
-                            String::from_utf8(
-                                self.seq[self.m_window_start..self.m_window_end].to_vec()
-                            )
-                            .unwrap(),
-                            super::numeric_to_kmer(self.m_active, self.msize)
-                        );
+                        prev_m_val = self.m_active;
+                        prev_w_start = self.m_window_start;
+                        prev_w_end = self.m_window_end;
                         self.m_active = new_min;
-                        self.m_window_start = self.pos - self.ksize + 1;
+                        self.m_window_start = self.pos - self.wsize + 1;
                         self.pos += 1;
-                        return Some((min_m_val, self.m_window_start, self.m_window_end));
+                        return Some((prev_m_val, prev_w_start, prev_w_end));
                     }
                 } else if min_m_val < self.m_active {
                     // break the window
                     self.m_window_end = self.pos;
-                    println!(
-                        "Window start:{:5} end:{:5} - {:60} : {:10}",
-                        self.m_window_start,
-                        self.m_window_end,
-                        String::from_utf8(
-                            self.seq[self.m_window_start..self.m_window_end].to_vec()
-                        )
-                        .unwrap(),
-                        super::numeric_to_kmer(self.m_active, self.msize)
-                    );
+                    prev_m_val = self.m_active;
+                    prev_w_start = self.m_window_start;
+                    prev_w_end = self.m_window_end;
                     self.m_active = min_m_val;
                     self.buff_pos = self.buff.len() - 1;
-                    self.m_window_start = self.pos - self.ksize + 1;
+                    self.m_window_start = self.pos - self.wsize + 1;
                     self.pos += 1;
-                    return Some((min_m_val, self.m_window_start, self.m_window_end));
+                    return Some((prev_m_val, prev_w_start, prev_w_end));
                 } else {
                     self.buff_pos -= 1;
                 }
@@ -178,7 +148,7 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
             }
 
             // first time we are experiencing all minimizers
-            if self.m_active == u64::MAX && self.buff.len() == self.ksize - self.msize + 1 {
+            if self.m_active == u64::MAX && self.buff.len() == self.wsize - self.msize + 1 {
                 for j in 0..self.buff.len() {
                     if *self.buff.get(j).unwrap() < self.m_active {
                         self.buff_pos = j;
@@ -188,16 +158,8 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
             }
 
             if self.pos == self.seq.len() - 1 {
-                println!(
-                    "Window start:{:5} end:{:5} - {:60} : {:10}",
-                    self.m_window_start,
-                    self.seq.len(),
-                    String::from_utf8(self.seq[self.m_window_start..self.seq.len()].to_vec())
-                        .unwrap(),
-                    super::numeric_to_kmer(self.m_active, self.msize)
-                );
                 self.pos += 1;
-                return Some((min_m_val, self.m_window_start, self.m_window_end));
+                return Some((self.m_active, self.m_window_start, self.seq.len()));
             }
 
             self.pos += 1;
@@ -208,24 +170,104 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::numeric_to_kmer;
 
     #[test]
     fn minimisers_generated_test() {
+        // Acquired from https://homolog.us/blogs/bioinfo/2017/10/25/intro-minimizer/
         let mut mg = MinimiserGenerator::new(b"ATGCGATATCGTAGGCGTCGATGGAGAGCTAGATCGATCGATCTAAATCCCGATCGATTCCGAGCGCGATCAAAGCGCGATAGGCTAGCTAAAGCTAGCA", 31, 7);
-        // let kmer1 = mg.next();
-        // let kmer2 = mg.next();
-        // let kmer3 = mg.next();
-        // let kmer4 = mg.next();
-        // let kmer4 = mg.next();
-        // let kmer4 = mg.next();
-        for (i, (k, s, e)) in mg.enumerate() {}
-        // // AC 00 01, GT 10 11
-        // assert_eq!(kmer1, Some((1, 11)));
-        // // CG 01 10, CG 01 10
-        // assert_eq!(kmer2, Some((6, 6)));
-        // // GT 10 11, AC 00 01
-        // assert_eq!(kmer3, Some((11, 1)));
-        // // None
-        // assert_eq!(kmer4, None);
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "ACGATAT");
+        assert_eq!(
+            &mg.seq[start..end],
+            "ATGCGATATCGTAGGCGTCGATGGAGAGCTAGATCG".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "ACGCCTA");
+        assert_eq!(
+            &mg.seq[start..end],
+            "TATCGTAGGCGTCGATGGAGAGCTAGATCGATCGAT".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "AGAGCTA");
+        assert_eq!(
+            &mg.seq[start..end],
+            "AGGCGTCGATGGAGAGCTAGATCGATCGATCTAAATCC".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "AAATCCC");
+        assert_eq!(
+            &mg.seq[start..end],
+            "ATGGAGAGCTAGATCGATCGATCTAAATCCCGATCGATTCCGAGCGCGATCAAAG".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "AATCCCG");
+        assert_eq!(
+            &mg.seq[start..end],
+            "AATCCCGATCGATTCCGAGCGCGATCAAAGC".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "AATCGAT");
+        assert_eq!(
+            &mg.seq[start..end],
+            "ATCCCGATCGATTCCGAGCGCGATCAAAGCG".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let (kmer, start, end) = mg.next().unwrap();
+        assert_eq!(numeric_to_kmer(kmer, 7), "AAAGCGC");
+        assert_eq!(
+            &mg.seq[start..end],
+            "TCCCGATCGATTCCGAGCGCGATCAAAGCGCGATAGGCTAGCTAAAGCTAGCA".as_bytes()
+        );
+        println!(
+            "Window start:{:5} end:{:5} - {:60} : {:10}",
+            start,
+            end,
+            String::from_utf8(mg.seq[start..end].to_vec()).unwrap(),
+            numeric_to_kmer(kmer, 7)
+        );
+        let res = mg.next();
+        assert_eq!(res, None);
     }
 }

@@ -1,4 +1,3 @@
-mod dsk_algo;
 use ktio::seq::{get_reader, SeqFormat, Sequences};
 
 pub struct CountComputer {
