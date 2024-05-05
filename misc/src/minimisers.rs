@@ -22,7 +22,7 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
         .unwrap();
     let records_arc = Arc::new(Mutex::new(records));
     let result_arc = Arc::new(result);
-    let total_records = Arc::new(Mutex::from(1));
+    let total_records = Arc::new(Mutex::from(0));
 
     pool.scope(|scope| {
         for _ in 0..threads {
@@ -30,9 +30,11 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
             let result_arc_clone = Arc::clone(&result_arc);
             let total_records_clone = Arc::clone(&total_records);
             let pbar_clone = pbar.clone();
+
             scope.spawn(move |_| {
                 loop {
                     let record = {
+                        // TODO use fetchadd
                         *total_records_clone.lock().unwrap() += 1;
                         records_arc_clone.lock().unwrap().next()
                     };
@@ -49,9 +51,11 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
                                 .or_insert(vec![(record.id.clone(), s, e)]);
                         }
                         // buff.write_all("\n".as_bytes()).unwrap();
-                        if record.n % 10000 == 0 {
-                            pbar_clone
-                                .set_message(format!("Processed no. of sequences: {}", record.n));
+                        if (record.n + 1) % 10000 == 0 {
+                            pbar_clone.set_message(format!(
+                                "Processed no. of sequences: {}",
+                                record.n + 1
+                            ));
                             pbar_clone.tick();
                         }
                     } else {

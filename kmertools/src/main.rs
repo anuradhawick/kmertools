@@ -26,10 +26,9 @@ fn main() {
                 if let Err(e) = com.vectorise() {
                     println!("Error: {}", e);
                 }
-            }
-            CompositionCommands::Cgr(_command) => {
-                todo!("")
-            }
+            } // CompositionCommands::Cgr(_command) => {
+              //     todo!("")
+              // }
         },
         args::Commands::Cov(command) => {
             let mut cov = CovComputer::new(

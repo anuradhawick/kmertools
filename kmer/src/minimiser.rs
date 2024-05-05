@@ -60,9 +60,9 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         let mut min_m_val: u64;
-        let prev_m_val: u64;
-        let prev_w_start: usize;
-        let prev_w_end: usize;
+        let mut prev_m_val: u64;
+        let mut prev_w_start: usize;
+        let mut prev_w_end: usize;
 
         loop {
             if self.pos == self.seq.len() {
@@ -80,16 +80,24 @@ impl<'a> Iterator for MinimiserGenerator<'a> {
                 self.m_val_l += 1;
             } else {
                 // ambiguous
+                // check if we have passed a good complete window
+                let should_return = self.buff.len() == self.wsize - self.msize + 1;
+                prev_m_val = self.m_active;
+                prev_w_start = self.m_window_start;
+                prev_w_end = self.pos;
                 self.buff_pos = 0;
                 self.m_active = u64::MAX;
-                self.m_mask = (1_u64 << (2 * self.msize)) - 1;
                 self.m_val_f = 0;
                 self.m_val_r = 0;
                 self.m_val_l = 0;
                 self.m_window_end = 0;
-                self.m_window_start = 0;
+                self.m_window_start = self.pos + 1;
+
                 self.buff.clear();
                 self.pos += 1;
+                if should_return {
+                    return Some((prev_m_val, prev_w_start, prev_w_end));
+                }
                 continue;
             }
 
@@ -269,5 +277,30 @@ mod tests {
         );
         let res = mg.next();
         assert_eq!(res, None);
+    }
+
+    #[test]
+    fn minimisers_generated_with_error_test() {
+        // Acquired from https://homolog.us/blogs/bioinfo/2017/10/25/intro-minimizer/
+        let mg = MinimiserGenerator::new(b"ATGCGATATCGNTAGGCGTCGATGGA", 8, 5);
+        let seq = mg.seq;
+        let expected = [
+            ("ATGCGATA", "ATCGC"),
+            ("TGCGATATCG", "ATATC"),
+            ("TAGGCGTCGA", "ACGCC"),
+            ("GCGTCGATGGA", "ATCGA"),
+        ];
+
+        for (i, (kmer, start, end)) in mg.enumerate() {
+            assert_eq!(&seq[start..end], expected[i].0.as_bytes());
+            assert_eq!(numeric_to_kmer(kmer, 5), expected[i].1);
+            println!(
+                "Window start:{:5} end:{:5} - {:60} : {:10}",
+                start,
+                end,
+                String::from_utf8(seq[start..end].to_vec()).unwrap(),
+                numeric_to_kmer(kmer, 5)
+            );
+        }
     }
 }

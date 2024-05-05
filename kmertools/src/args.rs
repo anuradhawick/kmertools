@@ -30,7 +30,7 @@ pub enum Preset {
 /// Subcommands available
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    /// Processes the input file and outputs vectors
+    /// Generate sequence composition based features
     Comp {
         #[clap(subcommand)]
         command: CompositionCommands,
@@ -46,8 +46,8 @@ pub enum Commands {
 pub enum CompositionCommands {
     /// Generate oligonucleotide frequency vectors
     Oligo(OligoCommand),
-    /// Generates Chaos Game Representation
-    Cgr(CGRCommand),
+    // /// Generates Chaos Game Representation
+    // Cgr(CGRCommand),
 }
 
 #[derive(Debug, Args)]

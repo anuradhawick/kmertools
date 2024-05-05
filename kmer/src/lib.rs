@@ -1,4 +1,5 @@
 pub mod kmer;
+pub mod kmer_minimisers;
 pub mod minimiser;
 pub type Kmer = u64;
 
