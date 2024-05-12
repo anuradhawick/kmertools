@@ -1,11 +1,13 @@
 use indicatif::{ProgressBar, ProgressStyle};
-use kmer::{kmer::KmerGenerator, kmer_minimisers::KmerMinimiserGenerator, minimiser, Kmer};
-use ktio::seq::{get_reader, SeqFormat, Sequences};
+use kmer::{kmer::KmerGenerator, Kmer};
+use ktio::{
+    fops::delete_file_if_exists,
+    seq::{get_reader, SeqFormat, Sequences},
+};
 use rayon::prelude::*;
 use scc::HashMap as SccMap;
 use std::{
     cmp::{max, min},
-    collections::HashMap,
     fs,
     io::{BufRead, BufReader, BufWriter, Read, Write},
     sync::{
@@ -14,7 +16,7 @@ use std::{
     },
 };
 
-// not very useful to make this a globally accepted type
+// only to make code more readable
 type SeqArc = Arc<Mutex<Sequences<BufReader<Box<dyn Read + Sync + Send>>>>>;
 
 pub struct CountComputer {
@@ -23,9 +25,10 @@ pub struct CountComputer {
     ksize: usize,
     threads: usize,
     records: SeqArc,
-    chunk: Arc<AtomicU64>,
+    chunks: u64,
     n_parts: u64,
     memory_ceil_gb: f64,
+    seq_count: u64,
 }
 
 impl CountComputer {
@@ -33,16 +36,6 @@ impl CountComputer {
         let format = SeqFormat::get(&in_path).unwrap();
         let reader = ktio::seq::get_reader(&in_path).unwrap();
         let records = Sequences::new(format, reader).unwrap();
-        let memory_ceil_gb = 6_f64;
-        let reader = get_reader(&in_path).unwrap();
-        let format = SeqFormat::get(&in_path).unwrap();
-        let stats = Sequences::seq_stats(format, reader);
-        let data_size_gb = stats.total_length as f64 / (1 << 30) as f64;
-        // assuming 8 bytes per kmer
-        let n_parts = max(
-            1,
-            (8_f64 * data_size_gb / (2_f64 * memory_ceil_gb)).ceil() as u64,
-        );
 
         Self {
             in_path,
@@ -50,9 +43,10 @@ impl CountComputer {
             ksize,
             threads: rayon::current_num_threads(),
             records: Arc::new(Mutex::new(records)),
-            chunk: Arc::new(AtomicU64::new(0)),
-            n_parts,
-            memory_ceil_gb,
+            chunks: 0,
+            n_parts: 0,
+            seq_count: 0,
+            memory_ceil_gb: 6_f64,
         }
     }
 
@@ -60,7 +54,33 @@ impl CountComputer {
         self.threads = threads;
     }
 
-    pub fn count(&self) -> u64 {
+    pub fn set_max_memory(&mut self, memory_ceil_gb: f64) {
+        self.memory_ceil_gb = memory_ceil_gb;
+    }
+
+    pub fn count(&mut self) {
+        self.init();
+        let pbar = ProgressBar::new(self.seq_count);
+        pbar.set_style(
+            ProgressStyle::with_template(
+                "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({percent}%) {msg}",
+            )
+            .unwrap()
+            .progress_chars("#>-"),
+        );
+        loop {
+            pbar.set_message(format!("Processing chunk: {}", self.chunks + 1));
+            let records = self.count_chunk(&pbar);
+            if records > 0 {
+                self.chunks += 1;
+            } else {
+                break;
+            }
+        }
+        pbar.finish();
+    }
+
+    fn count_chunk(&self, pbar: &ProgressBar) -> u64 {
         let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()
@@ -68,7 +88,6 @@ impl CountComputer {
         let total_records = Arc::new(AtomicU64::new(0));
         // an estimate of worse case kmer count
         let total_kmers_so_far = Arc::new(AtomicU64::new(0));
-        let pbar = ProgressBar::new_spinner();
         let counts_table: Vec<SccMap<Kmer, u32>> = vec![SccMap::new(); self.n_parts as usize];
         let counts_table_arc = Arc::new(counts_table);
         // make pbar for all bases struct wide
@@ -77,7 +96,6 @@ impl CountComputer {
             for _ in 0..self.threads {
                 let records_arc_clone = Arc::clone(&self.records);
                 let total_records_clone = Arc::clone(&total_records);
-                let pbar_clone = pbar.clone();
                 let counts_table_arc_clone = Arc::clone(&counts_table_arc);
                 let total_kmers_so_far_clone = Arc::clone(&total_kmers_so_far);
 
@@ -91,6 +109,7 @@ impl CountComputer {
                         }
                         let record = { records_arc_clone.lock().unwrap().next() };
                         if let Some(record) = record {
+                            pbar.inc(1);
                             total_records_clone.fetch_add(1, Ordering::Acquire);
                             for (fmer, rmer) in KmerGenerator::new(&record.seq, self.ksize) {
                                 let min_mer = min(fmer, rmer);
@@ -105,15 +124,6 @@ impl CountComputer {
 
                             total_kmers_so_far_clone
                                 .fetch_add(record.seq.len() as u64, Ordering::Relaxed);
-                            let recs = total_records_clone.load(Ordering::Acquire);
-                            if recs % 10000 == 0 {
-                                pbar_clone.set_message(format!(
-                                    "Processed no. of sequences from chunk: {}: {}",
-                                    self.chunk.load(Ordering::Relaxed),
-                                    recs
-                                ));
-                                pbar_clone.tick();
-                            }
                         } else {
                             // end of iteration
                             break;
@@ -123,14 +133,11 @@ impl CountComputer {
             }
         });
 
-        let chunk = self.chunk.load(Ordering::Acquire);
         let recs = total_records.load(Ordering::Acquire);
-        self.chunk.fetch_add(1, Ordering::Acquire);
-        pbar.set_message(format!(
-            "Processed no. of sequences from chunk: {}: {}",
-            chunk, recs,
-        ));
-        pbar.finish();
+
+        if recs == 0 {
+            return 0;
+        }
 
         pool.scope(|_| {
             counts_table_arc
@@ -139,7 +146,7 @@ impl CountComputer {
                 .for_each(|(part, map)| {
                     let outf = fs::File::create(format!(
                         "{}.part_{}_chunk_{}",
-                        self.out_path, part, chunk
+                        self.out_path, part, self.chunks
                     ))
                     .unwrap();
                     let mut buff = BufWriter::new(outf);
@@ -153,18 +160,17 @@ impl CountComputer {
         total_records.load(Ordering::Acquire)
     }
 
-    pub fn merge(&self) {
+    pub fn merge(&self, delete: bool) {
         let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()
             .unwrap();
-        let chunks = 27;
-        let pbar = ProgressBar::new(self.n_parts * chunks);
         let outf = fs::File::create(format!("{}.counts", self.out_path)).unwrap();
         let mut buff = BufWriter::new(outf);
+        let pbar = ProgressBar::new(self.n_parts * self.chunks);
         pbar.set_style(
             ProgressStyle::with_template(
-                "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} {msg}",
+                "[{elapsed_precise}] {bar:40.cyan/blue} {pos:>7}/{len:7} ({percent}%) {msg}",
             )
             .unwrap()
             .progress_chars("#>-"),
@@ -174,26 +180,26 @@ impl CountComputer {
             let completed = Arc::new(AtomicU64::new(0));
             let map: SccMap<Kmer, u32> = SccMap::new();
             let map_arc = Arc::new(map);
-            pbar.set_message(format!("Merging partition: {}", part));
+            pbar.set_message(format!("Merging partition: {}", part + 1));
 
             pool.scope(|scope| {
-                for chunk in 0..27 {
+                for chunk in 0..self.chunks {
                     let map_arc_clone = Arc::clone(&map_arc);
                     let pbar_clone = pbar.clone();
                     let completed_clone = Arc::clone(&completed);
 
                     scope.spawn(move |_| {
-                        let file = fs::File::open(format!(
-                            "{}.part_{}_chunk_{}",
-                            self.out_path, part, chunk
-                        ))
-                        .unwrap();
+                        let path = format!("{}.part_{}_chunk_{}", self.out_path, part, chunk);
+                        let file = fs::File::open(&path).unwrap();
                         let buff = BufReader::new(file);
                         for line in buff.lines().map_while(Result::ok) {
                             let mut parts = line.trim().split('\t');
                             let kmer: Kmer = parts.next().unwrap().parse().unwrap();
                             let count: u32 = parts.next().unwrap().parse().unwrap();
                             *map_arc_clone.entry(kmer).or_insert(0) += count;
+                        }
+                        if delete {
+                            delete_file_if_exists(&path).expect("file must be removable");
                         }
                         completed_clone.fetch_add(1, Ordering::Acquire);
                         pbar_clone.inc(1);
@@ -206,6 +212,22 @@ impl CountComputer {
                     .unwrap();
             });
         }
+
+        pbar.finish();
+    }
+
+    pub fn init(&mut self) {
+        let reader = get_reader(&self.in_path).unwrap();
+        let format = SeqFormat::get(&self.in_path).unwrap();
+        let stats = Sequences::seq_stats(format, reader);
+        let data_size_gb = stats.total_length as f64 / (1 << 30) as f64;
+        // assuming 8 bytes per kmer
+        let n_parts = max(
+            1,
+            (8_f64 * data_size_gb / (2_f64 * self.memory_ceil_gb)).ceil() as u64,
+        );
+        self.n_parts = n_parts;
+        self.seq_count = stats.seq_count as u64;
     }
 }
 
@@ -213,42 +235,48 @@ impl CountComputer {
 mod tests {
     use super::*;
 
-    // const PATH_FQ: &str = "../test_data/reads.fq";
-    const PATH_FQ: &str = "/Users/wic053/Downloads/reads.fasta";
+    const PATH_FQ: &str = "../test_data/reads.fq";
+    // const PATH_FQ: &str = "/home/anuvini/Downloads/reads.fasta";
 
     #[test]
     fn count_test() {
-        // for p in 0..10 {
-        let ctr = CountComputer::new(
+        let mut ctr = CountComputer::new(
             PATH_FQ.to_owned(),
             "../test_data/computed_counts".to_owned(),
             15,
         );
-        println!("n_parts: {}", ctr.n_parts);
-        // println!("n_parts: {}", ctr.s);
-        // loop {
-        //     let seqs = ctr.count();
-        //     // let seqs = ctr.count_min();
-        //     if seqs == 0 {
-        //         break;
-        //     }
-        //     println!(
-        //         "Finished part {}. with {} sequences",
-        //         ctr.chunk.load(Ordering::Acquire),
-        //         seqs
-        //     );
-        // }
-        println!("n_parts: {}", ctr.chunk.load(Ordering::Acquire));
+        ctr.count();
+        assert_eq!(ctr.n_parts, 1);
+        assert_eq!(ctr.chunks, 1);
+        let exp = load_lines("../test_data/expected_computed_counts.part_0_chunk_0");
+        let res = load_lines("../test_data/computed_counts.part_0_chunk_0");
+        println!("Result  : {:?}", res);
+        println!("Expected: {:?}", exp);
+        assert_eq!(exp, res);
     }
 
     #[test]
     fn merge_test() {
-        let ctr = CountComputer::new(
+        let mut ctr = CountComputer::new(
             PATH_FQ.to_owned(),
-            "../test_data/computed_counts".to_owned(),
+            "../test_data/computed_counts_test".to_owned(),
             15,
         );
-        println!("n_parts: {}", ctr.n_parts);
-        ctr.merge()
+        ctr.chunks = 2;
+        ctr.n_parts = 2;
+        ctr.merge(false);
+        let exp = load_lines("../test_data/expected_computed_counts_test.counts");
+        let res = load_lines("../test_data/computed_counts_test.counts");
+        println!("Result  : {:?}", res);
+        println!("Expected: {:?}", exp);
+        assert_eq!(exp, res);
+    }
+
+    fn load_lines(path: &str) -> Vec<String> {
+        let data = fs::read(path).unwrap();
+        let text = String::from_utf8(data).unwrap().trim().to_string();
+        let mut arr: Vec<String> = text.split('\n').map(|s| s.to_string()).collect();
+        arr.sort();
+        arr
     }
 }
