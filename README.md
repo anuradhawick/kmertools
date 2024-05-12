@@ -11,9 +11,9 @@
 ## Features
 
 - **Oligonucleotide Frequency Vectors:** Generate frequency vectors for oligonucleotides.
-- **Chaos Game Representation (CGR):** Compute CGR vectors for DNA sequences.
-- **Coverage Histograms:** Create coverage histograms to analyze the depth of sequencing reads.
 - **Minimiser Binning:** Efficiently bin sequences using minimisers to reduce data complexity.
+- PLANNED **Chaos Game Representation (CGR):** Compute CGR vectors for DNA sequences.
+- PLANNED **Coverage Histograms:** Create coverage histograms to analyze the depth of sequencing reads.
 
 ## Installation
 
@@ -25,26 +25,165 @@ cd kmertools
 cargo build --release
 ```
 
-## Usage
+Now add the binary to path (you may modify `~/.bashrc` or `~/.zshrc`)
 
-### General Syntax
-
-The tool uses a command-line interface with the following general syntax:
-```
-kmertools <command> [options]
+```sh
+export PATH=$PATH:$(pwd)/target/release/
 ```
 
-### Commands
+## Help
 
-- **Comp**: Processes the input file and outputs vectors.
-- **Cov**: Generates coverage histograms based on the reads.
-- **Min**: Bins reads using minimisers.
+The tool uses a command-line interface with the following command.
 
+```sh
+kmertools --help
+```
 
-## License
+OR
 
-TBD (GPL 3)
+```sh
+kmertools <COMMAND> --help
+```
 
-## Author
+You will be greeted with a help window as follows.
 
-Anuradha Wickramarachchi [https://anuradhawick.com](https://anuradhawick.com)
+```sh
+kmertools: DNA vectorisation
+
+Usage: kmertools <COMMAND>
+
+Commands:
+  comp  Generate sequence composition based features
+  cov   Generates coverage histogram based on the reads
+  min   Bin reads using minimisers
+  help  Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help (see more with '--help')
+  -V, --version  Print version
+```
+
+## Commands
+
+### Composition computations
+
+```sh
+Generate sequence composition based features
+
+Usage: kmertools comp <COMMAND>
+
+Commands:
+  oligo  Generate oligonucleotide frequency vectors
+  help   Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+```
+
+### Coverage computations
+
+```sh
+Generates coverage histogram based on the reads
+
+Usage: kmertools cov [OPTIONS] --input <INPUT> --output <OUTPUT>
+
+Options:
+  -i, --input <INPUT>
+          Input file path
+
+  -a, --alt-input <ALT_INPUT>
+          Input file path, for k-mer counting
+
+  -o, --output <OUTPUT>
+          Output vectors path
+
+  -k, --k-size <K_SIZE>
+          K size for the coverage histogram
+          
+          [default: 15]
+
+  -p, --preset <PRESET>
+          Output type to write
+          
+          [default: spc]
+
+          Possible values:
+          - csv: Comma separated format
+          - tsv: Tab separated format
+          - spc: Space separated format
+
+  -s, --bin-size <BIN_SIZE>
+          Bin size for the coverage histogram
+          
+          [default: 16]
+
+  -c, --bin-count <BIN_COUNT>
+          Number of bins for the coverage histogram
+          
+          [default: 16]
+
+      --counts
+          Disable normalisation and output raw counts
+
+  -t, --threads <THREADS>
+          Thread count for computations 0=auto
+          
+          [default: 0]
+
+  -h, --help
+          Print help (see a summary with '-h')
+```
+
+### Minimiser computations
+
+```sh
+Bin reads using minimisers
+
+Usage: kmertools min [OPTIONS] --input <INPUT> --output <OUTPUT>
+
+Options:
+  -i, --input <INPUT>
+          Input file path
+
+  -o, --output <OUTPUT>
+          Output vectors path
+
+  -m, --m-size <M_SIZE>
+          Minimiser size
+          
+          [default: 10]
+
+  -w, --w-size <W_SIZE>
+          Window size
+          
+          0 - emits one minimiser per sequence (useful for sequencing reads)
+          w_size must be longer than m_size
+          
+          [default: 0]
+
+  -p, --preset <PRESET>
+          Output type to write
+          
+          [default: s2m]
+
+          Possible values:
+          - s2m: Conver sequences into minimiser representation
+          - m2s: Group sequences by minimiser
+
+  -t, --threads <THREADS>
+          Thread count for computations 0=auto
+          
+          [default: 0]
+
+  -h, --help
+          Print help (see a summary with '-h')
+```
+
+## Authors
+
+* Anuradha Wickramarachchi [https://anuradhawick.com](https://anuradhawick.com)
+* Vijini Mallawaarachchi [https://vijinimallawaarachchi.com](https://vijinimallawaarachchi.com)
+
+## Support and contributions
+
+Please get in touch via author websites or GitHub issues. Thanks!
