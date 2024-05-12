@@ -11,7 +11,7 @@ use std::{
 pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, threads: usize) {
     let mut threads = threads;
     if threads == 0 {
-        threads = rayon::max_num_threads();
+        threads = rayon::current_num_threads();
     }
     let format = SeqFormat::get(in_path).unwrap();
     let reader = ktio::seq::get_reader(in_path).unwrap();
@@ -86,7 +86,7 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
 pub fn seq_to_min(wsize: usize, msize: usize, in_path: &str, out_path: &str, threads: usize) {
     let mut threads = threads;
     if threads == 0 {
-        threads = rayon::max_num_threads();
+        threads = rayon::current_num_threads();
     }
     let format = SeqFormat::get(in_path).unwrap();
     let reader = ktio::seq::get_reader(in_path).unwrap();
