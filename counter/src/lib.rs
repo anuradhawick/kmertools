@@ -234,9 +234,9 @@ impl CountComputer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ktio::fops::load_lines_sorted;
 
     const PATH_FQ: &str = "../test_data/reads.fq";
-    // const PATH_FQ: &str = "/home/anuvini/Downloads/reads.fasta";
 
     #[test]
     fn count_test() {
@@ -248,8 +248,8 @@ mod tests {
         ctr.count();
         assert_eq!(ctr.n_parts, 1);
         assert_eq!(ctr.chunks, 1);
-        let exp = load_lines("../test_data/expected_computed_counts.part_0_chunk_0");
-        let res = load_lines("../test_data/computed_counts.part_0_chunk_0");
+        let exp = load_lines_sorted("../test_data/expected_computed_counts.part_0_chunk_0");
+        let res = load_lines_sorted("../test_data/computed_counts.part_0_chunk_0");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);
@@ -265,18 +265,10 @@ mod tests {
         ctr.chunks = 2;
         ctr.n_parts = 2;
         ctr.merge(false);
-        let exp = load_lines("../test_data/expected_computed_counts_test.counts");
-        let res = load_lines("../test_data/computed_counts_test.counts");
+        let exp = load_lines_sorted("../test_data/expected_computed_counts_test.counts");
+        let res = load_lines_sorted("../test_data/computed_counts_test.counts");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);
-    }
-
-    fn load_lines(path: &str) -> Vec<String> {
-        let data = fs::read(path).unwrap();
-        let text = String::from_utf8(data).unwrap().trim().to_string();
-        let mut arr: Vec<String> = text.split('\n').map(|s| s.to_string()).collect();
-        arr.sort();
-        arr
     }
 }

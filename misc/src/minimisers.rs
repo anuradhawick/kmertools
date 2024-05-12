@@ -84,12 +84,17 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ktio::fops::load_lines_sorted;
 
-    // const PATH_FQ: &str = "../test_data/reads.fq";
-    const PATH_FQ: &str = "/home/anuvini/Downloads/reads.fasta";
+    const PATH_FQ: &str = "../test_data/reads.fq";
 
     #[test]
     fn bin_sequences_test() {
         bin_sequences(0, 10, PATH_FQ, "../test_data/computed_minimisers", 32);
+        let exp = load_lines_sorted("../test_data/expected_computed_minimisers");
+        let res = load_lines_sorted("../test_data/computed_minimisers");
+        println!("Result  : {:?}", res);
+        println!("Expected: {:?}", exp);
+        assert_eq!(exp, res);
     }
 }
