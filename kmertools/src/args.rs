@@ -17,14 +17,25 @@ pub struct Cli {
 }
 
 // COMMON
+
+// Presets for vector outputs
 #[derive(Debug, ValueEnum, Clone)]
-pub enum Preset {
+pub enum VecFmtPreset {
     /// Comma separated format
     Csv,
     /// Tab separated format
     Tsv,
     /// Space separated format
     Spc,
+}
+
+// Presets for minimiser outputs
+#[derive(Debug, ValueEnum, Clone)]
+pub enum MinFmtPreset {
+    /// Conver sequences into minimiser representation
+    S2m,
+    /// Group sequences by minimiser
+    M2s,
 }
 
 /// Subcommands available
@@ -69,8 +80,8 @@ pub struct OligoCommand {
     pub k_size: usize,
 
     /// Output type to write
-    #[clap(value_enum, short, long, default_value_t = Preset::Spc)]
-    pub preset: Preset,
+    #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
+    pub preset: VecFmtPreset,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]
@@ -96,8 +107,8 @@ pub struct CGRCommand {
     pub k_size: usize,
 
     /// Output type to write
-    #[clap(value_enum, short, long, default_value_t = Preset::Spc)]
-    pub preset: Preset,
+    #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
+    pub preset: VecFmtPreset,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]
@@ -124,8 +135,8 @@ pub struct CoverageCommand {
     pub k_size: u64,
 
     /// Output type to write
-    #[clap(value_enum, short, long, default_value_t = Preset::Spc)]
-    pub preset: Preset,
+    #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
+    pub preset: VecFmtPreset,
 
     /// Bin size for the coverage histogram
     #[arg(short = 's', long = "bin-size", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
@@ -156,15 +167,19 @@ pub struct MinimiserCommand {
     pub output: String,
 
     /// Minimiser size
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31), default_value_t = 10)]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=28), default_value_t = 10)]
     pub m_size: u64,
 
     /// Window size
     ///
     /// 0 - emits one minimiser per sequence (useful for sequencing reads)
-    /// w_size must be longer than m_size and must not exceed 30
+    /// w_size must be longer than m_size
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(0..), verbatim_doc_comment, default_value_t = 0)]
     pub w_size: u64,
+
+    /// Output type to write
+    #[clap(value_enum, short, long, default_value_t = MinFmtPreset::S2m)]
+    pub preset: MinFmtPreset,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]

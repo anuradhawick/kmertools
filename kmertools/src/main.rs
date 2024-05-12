@@ -19,9 +19,9 @@ fn main() {
                     com.set_norm(false);
                 }
                 match command.preset {
-                    args::Preset::Csv => com.set_delim(",".to_owned()),
-                    args::Preset::Spc => com.set_delim(" ".to_owned()),
-                    args::Preset::Tsv => com.set_delim("\t".to_owned()),
+                    args::VecFmtPreset::Csv => com.set_delim(",".to_owned()),
+                    args::VecFmtPreset::Spc => com.set_delim(" ".to_owned()),
+                    args::VecFmtPreset::Tsv => com.set_delim("\t".to_owned()),
                 }
                 if let Err(e) = com.vectorise() {
                     println!("Error: {}", e);
@@ -45,9 +45,9 @@ fn main() {
                 cov.set_kmer_path(path);
             }
             match command.preset {
-                args::Preset::Csv => cov.set_delim(",".to_owned()),
-                args::Preset::Spc => cov.set_delim(" ".to_owned()),
-                args::Preset::Tsv => cov.set_delim("\t".to_owned()),
+                args::VecFmtPreset::Csv => cov.set_delim(",".to_owned()),
+                args::VecFmtPreset::Spc => cov.set_delim(" ".to_owned()),
+                args::VecFmtPreset::Tsv => cov.set_delim("\t".to_owned()),
             }
             if let Err(e) = cov.vectorise() {
                 println!("Error: {}", e);
@@ -62,13 +62,23 @@ fn main() {
                 println!("Minimisers longer than 30 bases not allowed!");
                 return;
             }
-            minimisers::bin_sequences(
-                command.w_size as usize,
-                command.m_size as usize,
-                &command.input,
-                &command.output,
-                command.threads,
-            )
+
+            match command.preset {
+                args::MinFmtPreset::M2s => minimisers::bin_sequences(
+                    command.w_size as usize,
+                    command.m_size as usize,
+                    &command.input,
+                    &command.output,
+                    command.threads,
+                ),
+                args::MinFmtPreset::S2m => minimisers::seq_to_min(
+                    command.w_size as usize,
+                    command.m_size as usize,
+                    &command.input,
+                    &command.output,
+                    command.threads,
+                ),
+            }
         }
     }
 }
