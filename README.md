@@ -184,6 +184,22 @@ Options:
           Print help (see a summary with '-h')
 ```
 
+### K-mer counting
+
+```sh
+Count k-mers
+
+Usage: kmertools ctr [OPTIONS] --input <INPUT> --output <OUTPUT> --k-size <K_SIZE>
+
+Options:
+  -i, --input <INPUT>      Input file path
+  -o, --output <OUTPUT>    Output vectors path
+  -k, --k-size <K_SIZE>    k size for counting
+  -m, --memory <MEMORY>    Max memory in GB [default: 6]
+  -t, --threads <THREADS>  Thread count for computations 0=auto [default: 0]
+  -h, --help               Print help
+```
+
 ## Authors
 
 * Anuradha Wickramarachchi [https://anuradhawick.com](https://anuradhawick.com)
