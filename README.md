@@ -85,7 +85,7 @@ Options:
   -h, --help  Print help
 ```
 
-### Coverage computations
+### Coverage computations (Under development)
 
 ```sh
 Generates coverage histogram based on the reads
