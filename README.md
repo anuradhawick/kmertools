@@ -28,7 +28,12 @@ cargo build --release
 Now add the binary to path (you may modify `~/.bashrc` or `~/.zshrc`)
 
 ```sh
+# to add to current terminal
 export PATH=$PATH:$(pwd)/target/release/
+# to save to ~/.bashrc
+echo "export PATH=\$PATH:$(pwd)/target/release/" >> ~/.bashrc
+# to save to ~/.zshrc
+echo "export PATH=\$PATH:$(pwd)/target/release/" >> ~/.zshrc
 ```
 
 ## Help
