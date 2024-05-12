@@ -6,3 +6,6 @@ authors.workspace = true
 
 [dependencies]
 indicatif = "0.17.8"
+
+[lib]
+doctest = false

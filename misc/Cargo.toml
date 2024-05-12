@@ -12,3 +12,6 @@ ktio = { path = "../ktio" }
 indicatif = "0.17.8"
 rayon = "1.10.0"
 scc = "2.1.1"
+
+[lib]
+doctest = false

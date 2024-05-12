@@ -8,3 +8,6 @@ authors.workspace = true
 bio = "1.6.0"
 flate2 = "1.0.28"
 memmap2 = "0.9.4"
+
+[lib]
+doctest = false

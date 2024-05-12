@@ -9,3 +9,6 @@ kmer = { path = "../kmer" }
 ktio = { path = "../ktio" }
 memmap2 = "0.9.4"
 rayon = "1.10.0"
+
+[lib]
+doctest = false
