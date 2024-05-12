@@ -80,5 +80,15 @@ fn main() {
                 ),
             }
         }
+        args::Commands::Ctr(command) => {
+            let mut ctr =
+                counter::CountComputer::new(command.input, command.output, command.k_size as usize);
+            if command.threads > 0 {
+                ctr.set_threads(command.threads);
+            }
+            ctr.set_max_memory(command.memory as f64);
+            ctr.count();
+            ctr.merge(true);
+        }
     }
 }

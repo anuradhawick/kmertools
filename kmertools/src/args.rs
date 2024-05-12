@@ -50,6 +50,8 @@ pub enum Commands {
     Cov(CoverageCommand),
     /// Bin reads using minimisers
     Min(MinimiserCommand),
+    /// Count k-mers
+    Ctr(CounterCommand),
 }
 
 // COMPOSITION
@@ -180,6 +182,30 @@ pub struct MinimiserCommand {
     /// Output type to write
     #[clap(value_enum, short, long, default_value_t = MinFmtPreset::S2m)]
     pub preset: MinFmtPreset,
+
+    /// Thread count for computations 0=auto
+    #[arg(short, long, default_value_t = 0)]
+    pub threads: usize,
+}
+
+// COUNTER
+#[derive(Debug, Args)]
+pub struct CounterCommand {
+    /// Input file path
+    #[arg(short, long)]
+    pub input: String,
+
+    /// Output vectors path
+    #[arg(short, long)]
+    pub output: String,
+
+    /// k size for counting
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(10..32))]
+    pub k_size: u64,
+
+    /// Max memory in GB
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(6..=128), default_value_t = 6)]
+    pub memory: u64,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]

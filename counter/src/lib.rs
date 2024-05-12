@@ -222,8 +222,9 @@ impl CountComputer {
         let stats = Sequences::seq_stats(format, reader);
         let data_size_gb = stats.total_length as f64 / (1 << 30) as f64;
         // assuming 8 bytes per kmer
+        // at least this should be the num threads for fastest possible merging
         let n_parts = max(
-            1,
+            max(1, self.threads as u64),
             (8_f64 * data_size_gb / (2_f64 * self.memory_ceil_gb)).ceil() as u64,
         );
         self.n_parts = n_parts;

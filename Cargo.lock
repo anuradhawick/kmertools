@@ -522,6 +522,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "composition",
+ "counter",
  "coverage",
  "misc",
 ]
