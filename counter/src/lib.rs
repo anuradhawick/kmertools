@@ -29,6 +29,7 @@ pub struct CountComputer {
     n_parts: u64,
     memory_ceil_gb: f64,
     seq_count: u64,
+    debug: bool,
 }
 
 impl CountComputer {
@@ -47,6 +48,7 @@ impl CountComputer {
             n_parts: 0,
             seq_count: 0,
             memory_ceil_gb: 6_f64,
+            debug: false,
         }
     }
 
@@ -224,7 +226,7 @@ impl CountComputer {
         // assuming 8 bytes per kmer
         // at least this should be the num threads for fastest possible merging
         let n_parts = max(
-            max(1, self.threads as u64),
+            if self.debug { 1 } else { self.threads as u64 },
             (8_f64 * data_size_gb / (2_f64 * self.memory_ceil_gb)).ceil() as u64,
         );
         self.n_parts = n_parts;
@@ -246,6 +248,7 @@ mod tests {
             "../test_data/computed_counts".to_owned(),
             15,
         );
+        ctr.debug = true;
         ctr.count();
         assert_eq!(ctr.n_parts, 1);
         assert_eq!(ctr.chunks, 1);
