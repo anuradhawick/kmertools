@@ -252,7 +252,7 @@ mod tests {
         ctr.count();
         assert_eq!(ctr.n_parts, 1);
         assert_eq!(ctr.chunks, 1);
-        let exp = load_lines_sorted("../test_data/expected_computed_counts.part_0_chunk_0");
+        let exp = load_lines_sorted("../test_data/expected_counts.part_0_chunk_0");
         let res = load_lines_sorted("../test_data/computed_counts.part_0_chunk_0");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
@@ -269,7 +269,7 @@ mod tests {
         ctr.chunks = 2;
         ctr.n_parts = 2;
         ctr.merge(false);
-        let exp = load_lines_sorted("../test_data/expected_computed_counts_test.counts");
+        let exp = load_lines_sorted("../test_data/expected_counts_test.counts");
         let res = load_lines_sorted("../test_data/computed_counts_test.counts");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
