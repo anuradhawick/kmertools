@@ -49,7 +49,7 @@ impl OligoComputer {
     }
 
     pub fn vectorise(&self) -> Result<(), String> {
-        if self.in_path == "-" {
+        if self.in_path == "-" || !self.norm {
             return self.vectorise_batch();
         }
         self.vectorise_mmap()
