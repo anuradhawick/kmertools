@@ -78,7 +78,7 @@ pub struct OligoCommand {
     pub counts: bool,
 
     /// Set k-mer size
-    #[arg(short, long, default_value_t = 3)]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(3..=7), default_value_t = 3)]
     pub k_size: usize,
 
     /// Output type to write
@@ -134,7 +134,7 @@ pub struct CoverageCommand {
 
     /// K size for the coverage histogram
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31), default_value_t = 15)]
-    pub k_size: u64,
+    pub k_size: usize,
 
     /// Output type to write
     #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
@@ -142,11 +142,11 @@ pub struct CoverageCommand {
 
     /// Bin size for the coverage histogram
     #[arg(short = 's', long = "bin-size", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
-    pub bin_size: u64,
+    pub bin_size: usize,
 
     /// Number of bins for the coverage histogram
     #[arg(short = 'c', long = "bin-count", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
-    pub bin_count: u64,
+    pub bin_count: usize,
 
     /// Disable normalisation and output raw counts
     #[arg(long)]
@@ -206,6 +206,13 @@ pub struct CounterCommand {
     /// Max memory in GB
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(6..=128), default_value_t = 6)]
     pub memory: u64,
+
+    /// Output ACGT instead of numeric values
+    ///
+    /// This requires a larger space for the final result
+    /// compared to the compact numeric representation
+    #[arg(short, long, verbatim_doc_comment)]
+    pub acgt: bool,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]

@@ -34,9 +34,9 @@ fn main() {
             let mut cov = CovComputer::new(
                 command.input,
                 command.output,
-                command.k_size as usize,
-                command.bin_size as usize,
-                command.bin_size as usize,
+                command.k_size,
+                command.bin_size,
+                command.bin_size,
             );
             if command.threads > 0 {
                 cov.set_threads(command.threads);
@@ -85,6 +85,9 @@ fn main() {
                 counter::CountComputer::new(command.input, command.output, command.k_size as usize);
             if command.threads > 0 {
                 ctr.set_threads(command.threads);
+            }
+            if command.acgt {
+                ctr.set_acgt_output(true);
             }
             ctr.set_max_memory(command.memory as f64);
             ctr.count();
