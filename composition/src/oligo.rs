@@ -233,6 +233,7 @@ mod tests {
         com.set_norm(false);
         let kvec = com.vectorise_one(b"AAAANGAGA");
         assert_eq!(kvec[0], 1.0);
+        assert_eq!(kvec.iter().fold(0.0, |acc, v| acc + v), 2.0);
     }
 
     #[test]
