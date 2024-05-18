@@ -1,5 +1,5 @@
 use indicatif::{ProgressBar, ProgressStyle};
-use kmer::{kmer::KmerGenerator, Kmer};
+use kmer::{kmer::KmerGenerator, numeric_to_kmer, Kmer};
 use ktio::{
     fops::delete_file_if_exists,
     seq::{get_reader, SeqFormat, Sequences},
@@ -30,6 +30,7 @@ pub struct CountComputer {
     memory_ceil_gb: f64,
     seq_count: u64,
     debug: bool,
+    acgt: bool,
 }
 
 impl CountComputer {
@@ -49,6 +50,7 @@ impl CountComputer {
             seq_count: 0,
             memory_ceil_gb: 6_f64,
             debug: false,
+            acgt: false,
         }
     }
 
@@ -58,6 +60,10 @@ impl CountComputer {
 
     pub fn set_max_memory(&mut self, memory_ceil_gb: f64) {
         self.memory_ceil_gb = memory_ceil_gb;
+    }
+
+    pub fn set_acgt_output(&mut self, acgt: bool) {
+        self.acgt = acgt;
     }
 
     pub fn count(&mut self) {
@@ -210,8 +216,15 @@ impl CountComputer {
             });
 
             map_arc.scan(|k, v| {
-                buff.write_all(format!("{}\t{:?}\n", k, v).as_bytes())
+                if self.acgt {
+                    buff.write_all(
+                        format!("{}\t{:?}\n", numeric_to_kmer(*k, self.ksize), v).as_bytes(),
+                    )
                     .unwrap();
+                } else {
+                    buff.write_all(format!("{}\t{:?}\n", k, v).as_bytes())
+                        .unwrap();
+                }
             });
         }
 
@@ -252,7 +265,7 @@ mod tests {
         ctr.count();
         assert_eq!(ctr.n_parts, 1);
         assert_eq!(ctr.chunks, 1);
-        let exp = load_lines_sorted("../test_data/expected_computed_counts.part_0_chunk_0");
+        let exp = load_lines_sorted("../test_data/expected_counts.part_0_chunk_0");
         let res = load_lines_sorted("../test_data/computed_counts.part_0_chunk_0");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
@@ -269,8 +282,26 @@ mod tests {
         ctr.chunks = 2;
         ctr.n_parts = 2;
         ctr.merge(false);
-        let exp = load_lines_sorted("../test_data/expected_computed_counts_test.counts");
+        let exp = load_lines_sorted("../test_data/expected_counts_test.counts");
         let res = load_lines_sorted("../test_data/computed_counts_test.counts");
+        println!("Result  : {:?}", res);
+        println!("Expected: {:?}", exp);
+        assert_eq!(exp, res);
+    }
+
+    #[test]
+    fn merge_acgt_test() {
+        let mut ctr = CountComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/computed_counts_acgt_test".to_owned(),
+            15,
+        );
+        ctr.chunks = 2;
+        ctr.n_parts = 2;
+        ctr.set_acgt_output(true);
+        ctr.merge(false);
+        let exp = load_lines_sorted("../test_data/expected_counts_acgt_test.counts");
+        let res = load_lines_sorted("../test_data/computed_counts_acgt_test.counts");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);

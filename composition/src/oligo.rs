@@ -49,7 +49,7 @@ impl OligoComputer {
     }
 
     pub fn vectorise(&self) -> Result<(), String> {
-        if self.in_path == "-" {
+        if self.in_path == "-" || !self.norm {
             return self.vectorise_batch();
         }
         self.vectorise_mmap()
@@ -91,7 +91,13 @@ impl OligoComputer {
                                 // optimise this with pre-sized string
                                 let kvec_str: Vec<String> = kvec
                                     .iter()
-                                    .map(|val| format!("{:.*}", NUMBER_SIZE - 2, val))
+                                    .map(|val| {
+                                        if self.norm {
+                                            format!("{:.*}", NUMBER_SIZE - 2, val)
+                                        } else {
+                                            format!("{}", val)
+                                        }
+                                    })
                                     .collect();
                                 format!("{}\n", kvec_str.join(&self.delim))
                             })
@@ -111,7 +117,13 @@ impl OligoComputer {
                             let kvec = self.vectorise_one(&seq.seq);
                             let kvec_str: Vec<String> = kvec
                                 .iter()
-                                .map(|val| format!("{:.*}", NUMBER_SIZE - 2, val))
+                                .map(|val| {
+                                    if self.norm {
+                                        format!("{:.*}", NUMBER_SIZE - 2, val)
+                                    } else {
+                                        format!("{}", val)
+                                    }
+                                })
                                 .collect();
                             format!("{}\n", kvec_str.join(&self.delim))
                         })
@@ -127,6 +139,8 @@ impl OligoComputer {
     }
 
     fn vectorise_mmap(&self) -> Result<(), String> {
+        //
+        assert!(self.norm);
         let per_line_size = self.kcount * (NUMBER_SIZE + 1);
         // pre-calculate file size
         let estimated_file_size = {
@@ -219,6 +233,7 @@ mod tests {
         com.set_norm(false);
         let kvec = com.vectorise_one(b"AAAANGAGA");
         assert_eq!(kvec[0], 1.0);
+        assert_eq!(kvec.iter().fold(0.0, |acc, v| acc + v), 2.0);
     }
 
     #[test]
@@ -254,22 +269,36 @@ mod tests {
 
     #[test]
     fn vec_batch_threaded_test() {
-        // let mut com = OligoComputer::new("-", "../test_data/computed_fa_batched.kmers", 4);
-        // com.set_threads(8);
-        // let original_stdin = io::stdin();
-        // let (mut reader, mut writer) = os_pipe::pipe().unwrap();
-        // write!(writer, "{:?}", fs::read(PATH_FQ).unwrap()).unwrap();
+        for _ in 0..4 {
+            let mut com = OligoComputer::new(
+                PATH_FQ.to_owned(),
+                "../test_data/computed_fa_batch.kmers".to_owned(),
+                4,
+            );
+            com.set_threads(8);
+            let _ = com.vectorise_batch();
+            assert_eq!(
+                fs::read("../test_data/expected_fa.kmers").unwrap(),
+                fs::read("../test_data/computed_fa_batch.kmers").unwrap()
+            )
+        }
+    }
 
-        // unsafe {
-        //     let stdin = io::stdin();
-        //     let mut handle = stdin.lock();
-        //     *handle = BufReader::new(Box::new(reader));
-        // }
-
-        // let _ = com.vectorise_batch();
-        // assert_eq!(
-        //     fs::read("../test_data/expected_fa.kmers").unwrap(),
-        //     fs::read("../test_data/computed_fa_batched.kmers").unwrap()
-        // )
+    #[test]
+    fn vec_batch_threaded_unnorm_test() {
+        for _ in 0..4 {
+            let mut com = OligoComputer::new(
+                PATH_FQ.to_owned(),
+                "../test_data/computed_fa_batch_unnorm.kmers".to_owned(),
+                4,
+            );
+            com.set_threads(8);
+            com.set_norm(false);
+            let _ = com.vectorise_batch();
+            assert_eq!(
+                fs::read("../test_data/expected_fa_batch_unnorm.kmers").unwrap(),
+                fs::read("../test_data/computed_fa_batch_unnorm.kmers").unwrap()
+            )
+        }
     }
 }

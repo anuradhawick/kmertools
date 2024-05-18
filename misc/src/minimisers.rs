@@ -168,7 +168,7 @@ mod tests {
     #[test]
     fn bin_sequences_test() {
         bin_sequences(0, 10, PATH_FQ, "../test_data/computed_minimisers", 32);
-        let exp = load_lines_sorted("../test_data/expected_computed_minimisers");
+        let exp = load_lines_sorted("../test_data/expected_minimisers");
         let res = load_lines_sorted("../test_data/computed_minimisers");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
@@ -178,7 +178,7 @@ mod tests {
     #[test]
     fn seq_to_min_test() {
         seq_to_min(31, 7, PATH_FQ, "../test_data/computed_seq_minimisers", 32);
-        let exp = load_lines_sorted("../test_data/expected_computed_seq_minimisers");
+        let exp = load_lines_sorted("../test_data/expected_seq_minimisers");
         let res = load_lines_sorted("../test_data/computed_seq_minimisers");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
