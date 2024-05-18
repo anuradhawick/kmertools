@@ -1,5 +1,5 @@
 use super::Kmer;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::iter::Iterator;
 
 // https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L9C1-L26C3
@@ -51,11 +51,12 @@ impl<'a> KmerGenerator<'a> {
         rkmer
     }
 
-    pub fn kmer_to_vec_pos_map(ksize: usize) -> (Vec<usize>, usize) {
+    pub fn kmer_pos_maps(ksize: usize) -> (Vec<usize>, HashMap<usize, u64>, usize) {
         // this function returns a vector of size 4 ^ k that maps to (4 ^ k) / 2 or (4 ^ k) / 2 + 4 ^ (k / 2) / 2
-        // behaves as a min and perfect hash (MPHF) function that maps kmers to an index of vector we want
+        // behaves as a non-min but perfect hash (MPHF) function that maps kmers to an index of vector we want
         let mut min_mer_set = HashSet::new();
-        let mut pos_map = vec![0_usize; 4_u64.pow(ksize as u32) as usize];
+        let mut pos_min_mer_map = HashMap::new();
+        let mut min_mer_pos_map = vec![0_usize; 4_u64.pow(ksize as u32) as usize];
         for kmer in 0..(4_u64.pow(ksize as u32)) {
             let min_mer = u64::min(kmer, KmerGenerator::rev_comp(kmer, ksize));
             min_mer_set.insert(min_mer);
@@ -65,9 +66,10 @@ impl<'a> KmerGenerator<'a> {
         min_mer_vec.sort();
 
         for (pos, &kmer) in min_mer_vec.iter().enumerate() {
-            pos_map[kmer as usize] = pos;
+            min_mer_pos_map[kmer as usize] = pos;
+            pos_min_mer_map.insert(pos, kmer);
         }
-        (pos_map, count)
+        (min_mer_pos_map, pos_min_mer_map, count)
     }
 }
 
@@ -152,12 +154,13 @@ mod tests {
 
     #[test]
     fn pos_map_test() {
-        let (pos_map, pos_map_size) = KmerGenerator::kmer_to_vec_pos_map(4);
+        let (min_mer_pos_map, pos_min_mer_map, min_mer_count) = KmerGenerator::kmer_pos_maps(4);
         let mut pos_index_count = 0;
 
-        assert_eq!(pos_map_size, 136);
+        assert_eq!(min_mer_count, 136);
+        assert_eq!(pos_min_mer_map.len(), 136);
 
-        for pos in pos_map.clone() {
+        for pos in min_mer_pos_map.clone() {
             if pos > 0 {
                 pos_index_count += 1;
             }
@@ -165,10 +168,10 @@ mod tests {
         }
         assert!(pos_index_count == 135);
         // AAAA -> 0
-        assert_eq!(pos_map[0], 0);
+        assert_eq!(min_mer_pos_map[0], 0);
         // TTTT -> 0
-        assert_eq!(pos_map[0b11111111], 0);
+        assert_eq!(min_mer_pos_map[0b11111111], 0);
         // AAAT -> 11
-        assert_eq!(pos_map[0b11], 0b11);
+        assert_eq!(min_mer_pos_map[0b11], 0b11);
     }
 }

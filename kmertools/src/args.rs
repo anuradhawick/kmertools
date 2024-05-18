@@ -85,6 +85,10 @@ pub struct OligoCommand {
     #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
     pub preset: VecFmtPreset,
 
+    /// Include header (with k-mer in ACGT format)
+    #[clap(value_enum, short = 'H', long)]
+    pub header: bool,
+
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]
     pub threads: usize,
