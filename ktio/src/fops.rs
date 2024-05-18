@@ -19,3 +19,8 @@ pub fn load_lines_sorted(path: &str) -> Vec<String> {
     arr.sort();
     arr
 }
+
+#[test]
+fn delete_file_if_exists_test() {
+    assert!(delete_file_if_exists("../test_data/doesnotexist.txt").is_ok());
+}

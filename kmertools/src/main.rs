@@ -5,6 +5,7 @@ use coverage::CovComputer;
 use misc::minimisers;
 mod args;
 
+#[cfg(not(tarpaulin_include))]
 fn main() {
     let cli = args::Cli::parse();
 

@@ -2,7 +2,6 @@ use bio::io::fasta::{Reader as FastaReader, Records as FastaRecords};
 use bio::io::fastq::{Reader as FastqReader, Records as FastqRecords};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
-use std::ops::{Deref, DerefMut};
 
 // Record set entries of type R, which implement BufRead trait (stdin/file)
 pub enum RecordSet<R: BufRead> {
@@ -29,6 +28,10 @@ pub enum SeqFormat {
 
 impl SeqFormat {
     pub fn get(path: &str) -> Option<SeqFormat> {
+        let mut path = path;
+        if path.ends_with("gz") {
+            path = path.trim_end_matches("gz");
+        }
         if path.ends_with("fq") || path.ends_with("fastq") {
             return Some(SeqFormat::Fastq);
         } else if path.ends_with("fasta") || path.ends_with("fa") || path.ends_with("fna") {
@@ -88,20 +91,6 @@ impl<R: BufRead> Sequences<R> {
             seq_count,
             total_length,
         }
-    }
-}
-
-impl<R: BufRead> Deref for Sequences<R> {
-    type Target = RecordSet<R>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.records
-    }
-}
-
-impl<R: BufRead> DerefMut for Sequences<R> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.records
     }
 }
 
@@ -170,10 +159,22 @@ mod tests {
     use super::*;
     const PATH_FQ: &str = "../test_data/reads.fq";
     const PATH_FA: &str = "../test_data/reads.fa";
+    const PATH_FQ_GZ: &str = "../test_data/reads.fq.gz";
 
     #[test]
     fn seq_stats_test() {
+        // fastq
         let reader = get_reader(PATH_FQ).unwrap();
+        let stats = Sequences::seq_stats(SeqFormat::Fastq, reader);
+        assert_eq!(stats.seq_count, 2);
+        assert_eq!(stats.total_length, 144);
+        // fasta
+        let reader = get_reader(PATH_FA).unwrap();
+        let stats = Sequences::seq_stats(SeqFormat::Fasta, reader);
+        assert_eq!(stats.seq_count, 2);
+        assert_eq!(stats.total_length, 144);
+        // gz
+        let reader = get_reader(PATH_FQ_GZ).unwrap();
         let stats = Sequences::seq_stats(SeqFormat::Fastq, reader);
         assert_eq!(stats.seq_count, 2);
         assert_eq!(stats.total_length, 144);
