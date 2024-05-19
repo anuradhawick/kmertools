@@ -2,12 +2,14 @@
 name = "coverage"
 version.workspace = true
 edition.workspace = true
+authors.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 ktio = { path = "../ktio" }
 kmer = { path = "../kmer" }
+counter = { path = "../counter" }
 rayon = "1.10.0"
 scc = { version = "2.1.0", features = ["serde"] }
 

@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, io, path::Path};
 
 pub fn delete_file_if_exists<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
     let path = path.as_ref();
@@ -8,7 +8,11 @@ pub fn delete_file_if_exists<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn load_lines_sorted(path: &str) -> Vec<String> {
+pub fn create_directory(path: &str) -> io::Result<()> {
+    fs::create_dir_all(path)
+}
+
+pub fn load_lines_sorted<P: AsRef<Path>>(path: P) -> Vec<String> {
     let data = fs::read(path).unwrap();
     let text = String::from_utf8(data).unwrap().trim().to_string();
     let mut arr: Vec<String> = text
@@ -23,4 +27,9 @@ pub fn load_lines_sorted(path: &str) -> Vec<String> {
 #[test]
 fn delete_file_if_exists_test() {
     assert!(delete_file_if_exists("../test_data/doesnotexist.txt").is_ok());
+}
+
+#[test]
+fn create_directory_test() {
+    assert!(create_directory("../test_data/madedirectory").is_ok());
 }

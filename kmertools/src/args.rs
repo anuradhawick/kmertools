@@ -152,6 +152,10 @@ pub struct CoverageCommand {
     #[arg(short = 'c', long = "bin-count", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
     pub bin_count: usize,
 
+    /// Max memory in GB
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(6..=128), default_value_t = 6)]
+    pub memory: u64,
+
     /// Disable normalisation and output raw counts
     #[arg(long)]
     pub counts: bool,

@@ -27,9 +27,7 @@ fn main() {
                 if let Err(e) = com.vectorise() {
                     println!("Error: {}", e);
                 }
-            } // CompositionCommands::Cgr(_command) => {
-              //     todo!("")
-              // }
+            }
         },
         args::Commands::Cov(command) => {
             let mut cov = CovComputer::new(
@@ -45,14 +43,17 @@ fn main() {
             if let Some(path) = command.alt_input {
                 cov.set_kmer_path(path);
             }
+            if command.counts {
+                cov.set_norm(false);
+            }
+            cov.set_max_memory(command.memory as f64);
             match command.preset {
                 args::VecFmtPreset::Csv => cov.set_delim(",".to_owned()),
                 args::VecFmtPreset::Spc => cov.set_delim(" ".to_owned()),
                 args::VecFmtPreset::Tsv => cov.set_delim("\t".to_owned()),
             }
-            if let Err(e) = cov.vectorise() {
-                println!("Error: {}", e);
-            }
+            cov.build_table().unwrap();
+            cov.compute_coverages();
         }
         args::Commands::Min(command) => {
             if command.w_size <= command.m_size && command.w_size > 0 {

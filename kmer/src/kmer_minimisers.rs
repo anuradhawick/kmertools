@@ -102,7 +102,7 @@ impl<'a> Iterator for KmerMinimiserGenerator<'a> {
                 prev_w_start = self.m_window_start;
                 prev_w_end = self.pos;
                 if should_return {
-                    prev_k_buff = k_buff.clone();
+                    prev_k_buff.clone_from(&k_buff)
                 }
                 self.buff_pos = 0;
                 self.m_active = u64::MAX;

@@ -77,6 +77,7 @@ impl CountComputer {
             .progress_chars("#>-"),
         );
         loop {
+            // TODO have to fix below line being called even the next chunk does not exist
             pbar.set_message(format!("Processing chunk: {}", self.chunks + 1));
             let records = self.count_chunk(&pbar);
             if records > 0 {

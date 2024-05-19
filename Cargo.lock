@@ -271,6 +271,7 @@ dependencies = [
 name = "coverage"
 version = "0.1.0"
 dependencies = [
+ "counter",
  "kmer",
  "ktio",
  "rayon",
