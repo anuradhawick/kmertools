@@ -525,6 +525,7 @@ dependencies = [
  "composition",
  "counter",
  "coverage",
+ "ktio",
  "misc",
 ]
 

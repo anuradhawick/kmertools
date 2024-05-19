@@ -7,6 +7,8 @@ mod args;
 
 #[cfg(not(tarpaulin_include))]
 fn main() {
+    use ktio::fops::create_directory;
+
     let cli = args::Cli::parse();
 
     match cli.command {
@@ -30,6 +32,7 @@ fn main() {
             }
         },
         args::Commands::Cov(command) => {
+            create_directory(&command.output).unwrap();
             let mut cov = CovComputer::new(
                 command.input,
                 command.output,
@@ -83,6 +86,7 @@ fn main() {
             }
         }
         args::Commands::Ctr(command) => {
+            create_directory(&command.output).unwrap();
             let mut ctr =
                 counter::CountComputer::new(command.input, command.output, command.k_size as usize);
             if command.threads > 0 {

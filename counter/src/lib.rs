@@ -21,7 +21,7 @@ type SeqArc = Arc<Mutex<Sequences<BufReader<Box<dyn Read + Sync + Send>>>>>;
 
 pub struct CountComputer {
     in_path: String,
-    out_path: String,
+    out_dir: String,
     ksize: usize,
     threads: usize,
     records: SeqArc,
@@ -34,14 +34,14 @@ pub struct CountComputer {
 }
 
 impl CountComputer {
-    pub fn new(in_path: String, out_path: String, ksize: usize) -> Self {
+    pub fn new(in_path: String, out_dir: String, ksize: usize) -> Self {
         let format = SeqFormat::get(&in_path).unwrap();
         let reader = ktio::seq::get_reader(&in_path).unwrap();
         let records = Sequences::new(format, reader).unwrap();
 
         Self {
             in_path,
-            out_path,
+            out_dir,
             ksize,
             threads: rayon::current_num_threads(),
             records: Arc::new(Mutex::new(records)),
@@ -154,8 +154,8 @@ impl CountComputer {
                 .enumerate()
                 .for_each(|(part, map)| {
                     let outf = fs::File::create(format!(
-                        "{}.part_{}_chunk_{}",
-                        self.out_path, part, self.chunks
+                        "{}/temp_kmers.part_{}_chunk_{}",
+                        self.out_dir, part, self.chunks
                     ))
                     .unwrap();
                     let mut buff = BufWriter::new(outf);
@@ -174,7 +174,7 @@ impl CountComputer {
             .num_threads(self.threads)
             .build()
             .unwrap();
-        let outf = fs::File::create(format!("{}.counts", self.out_path)).unwrap();
+        let outf = fs::File::create(format!("{}/kmers.counts", self.out_dir)).unwrap();
         let mut buff = BufWriter::new(outf);
         let pbar = ProgressBar::new(self.n_parts * self.chunks);
         pbar.set_style(
@@ -198,7 +198,8 @@ impl CountComputer {
                     let completed_clone = Arc::clone(&completed);
 
                     scope.spawn(move |_| {
-                        let path = format!("{}.part_{}_chunk_{}", self.out_path, part, chunk);
+                        let path =
+                            format!("{}/temp_kmers.part_{}_chunk_{}", self.out_dir, part, chunk);
                         let file = fs::File::open(&path).unwrap();
                         let buff = BufReader::new(file);
                         for line in buff.lines().map_while(Result::ok) {
@@ -251,12 +252,13 @@ impl CountComputer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ktio::fops::load_lines_sorted;
+    use ktio::fops::{create_directory, load_lines_sorted};
 
     const PATH_FQ: &str = "../test_data/reads.fq";
 
     #[test]
     fn count_test() {
+        create_directory("../test_data/computed_counts").expect("Directory must be creatable");
         let mut ctr = CountComputer::new(
             PATH_FQ.to_owned(),
             "../test_data/computed_counts".to_owned(),
@@ -267,7 +269,7 @@ mod tests {
         assert_eq!(ctr.n_parts, 1);
         assert_eq!(ctr.chunks, 1);
         let exp = load_lines_sorted("../test_data/expected_counts.part_0_chunk_0");
-        let res = load_lines_sorted("../test_data/computed_counts.part_0_chunk_0");
+        let res = load_lines_sorted("../test_data/computed_counts/temp_kmers.part_0_chunk_0");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);
@@ -284,7 +286,7 @@ mod tests {
         ctr.n_parts = 2;
         ctr.merge(false);
         let exp = load_lines_sorted("../test_data/expected_counts_test.counts");
-        let res = load_lines_sorted("../test_data/computed_counts_test.counts");
+        let res = load_lines_sorted("../test_data/computed_counts_test/kmers.counts");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);

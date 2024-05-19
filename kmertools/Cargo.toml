@@ -10,3 +10,4 @@ composition = { path = "../composition" }
 coverage = { path = "../coverage" }
 counter = { path = "../counter" }
 misc = { path = "../misc" }
+ktio = { path = "../ktio" }

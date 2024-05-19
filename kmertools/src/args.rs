@@ -132,7 +132,7 @@ pub struct CoverageCommand {
     #[arg(short, long)]
     pub alt_input: Option<String>,
 
-    /// Output vectors path
+    /// Output directory path
     #[arg(short, long)]
     pub output: String,
 
@@ -203,7 +203,7 @@ pub struct CounterCommand {
     #[arg(short, long)]
     pub input: String,
 
-    /// Output vectors path
+    /// Output directory path
     #[arg(short, long)]
     pub output: String,
 

@@ -8,7 +8,7 @@ pub fn delete_file_if_exists<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
     Ok(())
 }
 
-pub fn create_directory(path: &str) -> io::Result<()> {
+pub fn create_directory<P: AsRef<Path>>(path: P) -> io::Result<()> {
     fs::create_dir_all(path)
 }
 

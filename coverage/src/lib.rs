@@ -1,9 +1,6 @@
 use counter::CountComputer;
 use kmer::{kmer::KmerGenerator, Kmer};
-use ktio::{
-    fops::create_directory,
-    seq::{SeqFormat, Sequences},
-};
+use ktio::seq::{SeqFormat, Sequences};
 use rayon::prelude::*;
 use std::{
     cmp::min,
@@ -35,7 +32,6 @@ impl CovComputer {
         bin_size: usize,
         bin_count: usize,
     ) -> Self {
-        create_directory(&out_dir).expect("Directory must be creatable");
         Self {
             in_path: in_path.clone(),
             in_path_kmer: in_path,
@@ -71,8 +67,8 @@ impl CovComputer {
     }
 
     pub fn build_table(&self) -> Result<(), String> {
-        let counts_path = format!("{}/kmers", self.out_dir);
-        let mut ctr = CountComputer::new(self.in_path_kmer.clone(), counts_path, self.ksize);
+        let mut ctr =
+            CountComputer::new(self.in_path_kmer.clone(), self.out_dir.clone(), self.ksize);
         ctr.set_threads(self.threads);
         ctr.set_max_memory(self.memory_ceil_gb);
         ctr.count();
@@ -191,12 +187,14 @@ impl CovComputer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ktio::fops::create_directory;
     use std::fs;
 
     const PATH_FQ: &str = "../test_data/reads.fq";
 
     #[test]
     fn kmer_count_vecs_test() {
+        create_directory("../test_data/computed_coverages").expect("Directory must be creatable");
         let mut cov = CovComputer::new(
             PATH_FQ.to_owned(),
             "../test_data/computed_coverages".to_owned(),
@@ -224,6 +222,8 @@ mod tests {
 
     #[test]
     fn kmer_count_vecs_unnorm_test() {
+        create_directory("../test_data/computed_coverage_unnorm")
+            .expect("Directory must be creatable");
         let mut cov = CovComputer::new(
             PATH_FQ.to_owned(),
             "../test_data/computed_coverage_unnorm".to_owned(),
