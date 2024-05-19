@@ -304,7 +304,7 @@ mod tests {
         ctr.set_acgt_output(true);
         ctr.merge(false);
         let exp = load_lines_sorted("../test_data/expected_counts_acgt_test.counts");
-        let res = load_lines_sorted("../test_data/computed_counts_acgt_test.counts");
+        let res = load_lines_sorted("../test_data/computed_counts_acgt_test/kmers.counts");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);
