@@ -79,7 +79,7 @@ pub struct OligoCommand {
 
     /// Set k-mer size
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(3..=7), default_value_t = 3)]
-    pub k_size: usize,
+    pub k_size: u64,
 
     /// Output type to write
     #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
