@@ -22,6 +22,9 @@ fn main() {
                 if command.counts {
                     com.set_norm(false);
                 }
+                if command.header {
+                    com.set_header(true);
+                }
                 match command.preset {
                     args::VecFmtPreset::Csv => com.set_delim(",".to_owned()),
                     args::VecFmtPreset::Spc => com.set_delim(" ".to_owned()),
