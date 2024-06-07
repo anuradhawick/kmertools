@@ -192,6 +192,7 @@ impl OligoCgrComputer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     const PATH_FQ: &str = "../test_data/reads.fq";
 
@@ -216,5 +217,23 @@ mod tests {
         assert_eq!(res[0].0 .0, 0.5);
         assert_eq!(res[0].0 .1, 0.5);
         assert_eq!(res[0].1, 1.0);
+    }
+
+    #[test]
+    fn oligo_cgr_complete_unnorm_test() {
+        let mut cgr = OligoCgrComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/reads.k4.cgr".to_owned(),
+            4,
+            16,
+        );
+        cgr.set_threads(4);
+        cgr.set_norm(false);
+        cgr.vectorise().unwrap();
+
+        assert_eq!(
+            fs::read("../test_data/expected_reads.k4.cgr").unwrap(),
+            fs::read("../test_data/reads.k4.cgr").unwrap()
+        )
     }
 }

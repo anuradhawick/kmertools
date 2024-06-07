@@ -16,7 +16,6 @@ pub struct CgrComputer {
     in_path: String,
     out_path: String,
     threads: usize,
-    norm: bool,
     memory: usize,
     cgr_center: Point,
     cgr_map: HashMap<u8, Point>,
@@ -29,7 +28,6 @@ impl CgrComputer {
             in_path,
             out_path,
             threads: rayon::current_num_threads(),
-            norm: true,
             memory: GB_4,
             cgr_center,
             cgr_map,
@@ -40,15 +38,7 @@ impl CgrComputer {
         self.threads = threads;
     }
 
-    pub fn set_norm(&mut self, norm: bool) {
-        self.norm = norm;
-    }
-
     pub fn vectorise(&self) -> Result<(), String> {
-        self.vectorise_batch()
-    }
-
-    fn vectorise_batch(&self) -> Result<(), String> {
         let mut reader = ktio::seq::get_reader(&self.in_path).unwrap();
         let buffer = reader
             .fill_buf()
@@ -157,6 +147,7 @@ impl CgrComputer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
 
     const PATH_FQ: &str = "../test_data/reads.fq";
 
@@ -193,5 +184,17 @@ mod tests {
         ];
 
         assert_eq!(vec, res);
+    }
+
+    #[test]
+    fn cgr_complete_unnorm_test() {
+        let mut cgr = CgrComputer::new(PATH_FQ.to_owned(), "../test_data/reads.cgr".to_owned(), 1);
+        cgr.set_threads(4);
+        cgr.vectorise().unwrap();
+
+        assert_eq!(
+            fs::read("../test_data/expected_reads.cgr").unwrap(),
+            fs::read("../test_data/reads.cgr").unwrap()
+        )
     }
 }

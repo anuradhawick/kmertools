@@ -61,7 +61,6 @@ fn main() {
                     if command.threads > 0 {
                         cgr.set_threads(command.threads);
                     }
-                    cgr.set_norm(!command.counts);
                     if let Err(e) = cgr.vectorise() {
                         eprintln!("Error: {}", e);
                     }
