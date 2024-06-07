@@ -25,8 +25,8 @@ $$ | \$$\ $$ | $$ | $$ |\$$$$$$$\ $$ |         $$ |   \$$$$$$  |\$$$$$$  |$$ |$$
 
 - **Oligonucleotide Frequency Vectors:** Generate frequency vectors for oligonucleotides.
 - **Minimiser Binning:** Efficiently bin sequences using minimisers to reduce data complexity.
-- PLANNED **Chaos Game Representation (CGR):** Compute CGR vectors for DNA sequences.
-- PLANNED **Coverage Histograms:** Create coverage histograms to analyze the depth of sequencing reads.
+- **Chaos Game Representation (CGR):** Compute CGR vectors for DNA sequences based on k-mers or whole sequence transformation.
+- **Coverage Histograms:** Create coverage histograms to analyze the depth of sequencing reads.
 
 ## Installation
 

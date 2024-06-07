@@ -1,3 +1,4 @@
+use kmer::{kmer::KmerGenerator, numeric_to_kmer};
 use ktio::seq::{SeqFormat, Sequence, Sequences};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -12,27 +13,42 @@ type Point = (f64, f64);
 // Code and test adopted from https://github.com/skatila/pycgr (as of 2:55 am Friday, 7 June 2024 Coordinated Universal Time (UTC))
 // Git tag 922ebd4bec482ae6522453c14d3f9dc5d1c99995
 // Under full compliance of GPL-3.0 license (https://github.com/skatila/pycgr/blob/922ebd4bec482ae6522453c14d3f9dc5d1c99995/LICENSE)
-pub struct CgrComputer {
+pub struct OligoCgrComputer {
     in_path: String,
     out_path: String,
     threads: usize,
     norm: bool,
+    ksize: usize,
     memory: usize,
     cgr_center: Point,
     cgr_map: HashMap<u8, Point>,
+    kmers: Vec<String>,
+    pos_map: Vec<usize>,
+    kcount: usize,
 }
 
-impl CgrComputer {
-    pub fn new(in_path: String, out_path: String, vecsize: usize) -> Self {
-        let (cgr_center, cgr_map) = CgrComputer::cgr_maps(vecsize as f64);
+impl OligoCgrComputer {
+    pub fn new(in_path: String, out_path: String, ksize: usize, vecsize: usize) -> Self {
+        let (cgr_center, cgr_map) = OligoCgrComputer::cgr_maps(vecsize as f64);
+        let (min_mer_pos_map, pos_min_mer_map, kcount) = KmerGenerator::kmer_pos_maps(ksize);
+        let mut kmers = vec![String::new(); kcount];
+
+        for (&pos, &kmer) in pos_min_mer_map.iter() {
+            kmers[pos] = numeric_to_kmer(kmer, ksize);
+        }
+
         Self {
             in_path,
             out_path,
+            ksize,
             threads: rayon::current_num_threads(),
             norm: true,
             memory: GB_4,
             cgr_center,
             cgr_map,
+            kmers,
+            pos_map: min_mer_pos_map,
+            kcount,
         }
     }
 
@@ -45,10 +61,6 @@ impl CgrComputer {
     }
 
     pub fn vectorise(&self) -> Result<(), String> {
-        self.vectorise_batch()
-    }
-
-    fn vectorise_batch(&self) -> Result<(), String> {
         let mut reader = ktio::seq::get_reader(&self.in_path).unwrap();
         let buffer = reader
             .fill_buf()
@@ -80,7 +92,7 @@ impl CgrComputer {
                             let kvec = self.vectorise_one(&seq.seq).unwrap();
                             let kvec_str: Vec<String> = kvec
                                 .iter()
-                                .map(|val| format!("({},{})", val.0, val.1))
+                                .map(|val| format!("({},{},{})", val.0 .0, val.0 .1, val.1))
                                 .collect();
                             format!("{}\n", kvec_str.join(" "))
                         })
@@ -108,23 +120,46 @@ impl CgrComputer {
         Ok(())
     }
 
-    fn vectorise_one(&self, seq: &[u8]) -> Result<Vec<Point>, String> {
+    fn vectorise_one(&self, seq: &[u8]) -> Result<Vec<(Point, f64)>, String> {
         let mut cgr = Vec::with_capacity(seq.len());
-        let mut cgr_marker = self.cgr_center;
+        let freqs = self.seq_to_kmer(seq);
 
-        for s in seq.iter() {
-            if let Some(&cgr_corner) = self.cgr_map.get(s) {
-                cgr_marker = (
-                    (cgr_corner.0 + cgr_marker.0) / 2.0,
-                    (cgr_corner.1 + cgr_marker.1) / 2.0,
-                );
-                cgr.push(cgr_marker);
-            } else {
-                return Err("Bad nucleotide, unable to proceed".to_string());
+        for (kmer, freq) in self.kmers.iter().zip(freqs.iter()) {
+            let mut cgr_marker = self.cgr_center;
+            for s in kmer.as_bytes() {
+                if let Some(&cgr_corner) = self.cgr_map.get(s) {
+                    cgr_marker = (
+                        (cgr_corner.0 + cgr_marker.0) / 2.0,
+                        (cgr_corner.1 + cgr_marker.1) / 2.0,
+                    );
+                } else {
+                    return Err("Bad nucleotide, unable to proceed".to_string());
+                }
             }
+            cgr.push((cgr_marker, *freq));
         }
 
         Ok(cgr)
+    }
+
+    fn seq_to_kmer(&self, seq: &[u8]) -> Vec<f64> {
+        let mut vec = vec![0_f64; self.kcount];
+        let mut total = 0_f64;
+
+        for (fmer, rmer) in KmerGenerator::new(seq, self.ksize) {
+            let min_mer = u64::min(fmer, rmer);
+            unsafe {
+                // we already know the size of the vector and
+                // min_mer is absolutely smaller than that
+                let &min_mer_pos = self.pos_map.get_unchecked(min_mer as usize);
+                *vec.get_unchecked_mut(min_mer_pos) += 1_f64;
+                total += 1_f64;
+            }
+        }
+        if self.norm {
+            vec.iter_mut().for_each(|el| *el /= f64::max(1_f64, total));
+        }
+        vec
     }
 
     fn cgr_maps(vecsize: f64) -> (Point, HashMap<u8, Point>) {
@@ -161,37 +196,25 @@ mod tests {
     const PATH_FQ: &str = "../test_data/reads.fq";
 
     #[test]
-    fn cgr_vec_test() {
-        let cgr = CgrComputer::new(PATH_FQ.to_owned(), "".to_owned(), 1);
-        let vec = cgr
-            .vectorise_one("atgatgaaatagagagactttat".as_bytes())
+    fn oligo_cgr_vec_norm_test() {
+        let cgr = OligoCgrComputer::new(PATH_FQ.to_owned(), "".to_owned(), 4, 16);
+        let res = cgr
+            .vectorise_one("aaaatgatgaaatagagagactttattaa".as_bytes())
             .unwrap();
-        let res = vec![
-            (0.25, 0.25),
-            (0.625, 0.125),
-            (0.8125, 0.5625),
-            (0.40625, 0.28125),
-            (0.703125, 0.140625),
-            (0.8515625, 0.5703125),
-            (0.42578125, 0.28515625),
-            (0.212890625, 0.142578125),
-            (0.1064453125, 0.0712890625),
-            (0.55322265625, 0.03564453125),
-            (0.276611328125, 0.017822265625),
-            (0.6383056640625, 0.5089111328125),
-            (0.31915283203125, 0.25445556640625),
-            (0.659576416015625, 0.627227783203125),
-            (0.3297882080078125, 0.3136138916015625),
-            (0.6648941040039062, 0.6568069458007812),
-            (0.3324470520019531, 0.3284034729003906),
-            (0.16622352600097656, 0.6642017364501953),
-            (0.5831117630004883, 0.33210086822509766),
-            (0.7915558815002441, 0.16605043411254883),
-            (0.8957779407501221, 0.08302521705627441),
-            (0.44788897037506104, 0.04151260852813721),
-            (0.7239444851875305, 0.020756304264068604),
-        ];
+        assert_eq!(res[0].0 .0, 0.5);
+        assert_eq!(res[0].0 .1, 0.5);
+        assert_eq!(res[0].1, 1.0 / (29 - 4 + 1) as f64);
+    }
 
-        assert_eq!(vec, res);
+    #[test]
+    fn oligo_cgr_vec_unnorm_test() {
+        let mut cgr = OligoCgrComputer::new(PATH_FQ.to_owned(), "".to_owned(), 4, 16);
+        cgr.set_norm(false);
+        let res = cgr
+            .vectorise_one("aaaatgatgaaatagagagactttattaa".as_bytes())
+            .unwrap();
+        assert_eq!(res[0].0 .0, 0.5);
+        assert_eq!(res[0].0 .1, 0.5);
+        assert_eq!(res[0].1, 1.0);
     }
 }

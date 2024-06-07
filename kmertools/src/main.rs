@@ -7,6 +7,7 @@ mod args;
 
 #[cfg(not(tarpaulin_include))]
 fn main() {
+    use composition::{cgr::CgrComputer, oligocgr::OligoCgrComputer};
     use ktio::fops::create_directory;
 
     let cli = args::Cli::parse();
@@ -19,19 +20,51 @@ fn main() {
                 if command.threads > 0 {
                     com.set_threads(command.threads);
                 }
-                if command.counts {
-                    com.set_norm(false);
-                }
-                if command.header {
-                    com.set_header(true);
-                }
+                com.set_norm(!command.counts);
+                com.set_header(command.header);
+
                 match command.preset {
                     args::VecFmtPreset::Csv => com.set_delim(",".to_owned()),
                     args::VecFmtPreset::Spc => com.set_delim(" ".to_owned()),
                     args::VecFmtPreset::Tsv => com.set_delim("\t".to_owned()),
                 }
                 if let Err(e) = com.vectorise() {
-                    println!("Error: {}", e);
+                    eprintln!("Error: {}", e);
+                }
+            }
+            CompositionCommands::Cgr(command) => {
+                if let Some(ksize) = command.k_size {
+                    let vecsize = command
+                        .vec_size
+                        .unwrap_or((ksize as f64).powf(4.0).powf(0.5) as u64)
+                        as usize;
+                    let mut cgr = OligoCgrComputer::new(
+                        command.input,
+                        command.output,
+                        ksize as usize,
+                        vecsize,
+                    );
+                    if command.threads > 0 {
+                        cgr.set_threads(command.threads);
+                    }
+                    cgr.set_norm(!command.counts);
+                    if let Err(e) = cgr.vectorise() {
+                        eprintln!("Error: {}", e);
+                    }
+                } else {
+                    if command.counts {
+                        eprintln!("Error: cannot use counts in whole sequence CGR!");
+                        return;
+                    }
+                    let vecsize = command.vec_size.unwrap_or(1) as usize;
+                    let mut cgr = CgrComputer::new(command.input, command.output, vecsize);
+                    if command.threads > 0 {
+                        cgr.set_threads(command.threads);
+                    }
+                    cgr.set_norm(!command.counts);
+                    if let Err(e) = cgr.vectorise() {
+                        eprintln!("Error: {}", e);
+                    }
                 }
             }
         },
@@ -40,7 +73,7 @@ fn main() {
             let mut cov = CovComputer::new(
                 command.input,
                 command.output,
-                command.k_size,
+                command.k_size as usize,
                 command.bin_size,
                 command.bin_size,
             );
@@ -64,11 +97,11 @@ fn main() {
         }
         args::Commands::Min(command) => {
             if command.w_size <= command.m_size && command.w_size > 0 {
-                println!("Window size must be longer than minimiser size!");
+                eprintln!("Window size must be longer than minimiser size!");
                 return;
             }
             if command.m_size >= 31 {
-                println!("Minimisers longer than 30 bases not allowed!");
+                eprintln!("Minimisers longer than 30 bases not allowed!");
                 return;
             }
 

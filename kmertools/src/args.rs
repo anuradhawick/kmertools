@@ -59,8 +59,8 @@ pub enum Commands {
 pub enum CompositionCommands {
     /// Generate oligonucleotide frequency vectors
     Oligo(OligoCommand),
-    // /// Generates Chaos Game Representation
-    // Cgr(CGRCommand),
+    /// Generates Chaos Game Representations
+    Cgr(CGRCommand),
 }
 
 #[derive(Debug, Args)]
@@ -104,17 +104,17 @@ pub struct CGRCommand {
     #[arg(short, long)]
     pub output: String,
 
-    /// Disable normalisation and output raw counts
+    /// Disable normalisation and output raw counts (only with k-mer mode)
     #[arg(short, long)]
     pub counts: bool,
 
-    /// Set k-mer size
-    #[arg(short, long, default_value_t = 3)]
-    pub k_size: usize,
+    /// Set k-mer size or default to full sequence CGR
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(3..=7))]
+    pub k_size: Option<u64>,
 
-    /// Output type to write
-    #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
-    pub preset: VecFmtPreset,
+    /// Set vector size (output will be a square matrix with N=vecsize)
+    #[arg(short, long)]
+    pub vec_size: Option<u64>,
 
     /// Thread count for computations 0=auto
     #[arg(short, long, default_value_t = 0)]
@@ -138,7 +138,7 @@ pub struct CoverageCommand {
 
     /// K size for the coverage histogram
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31), default_value_t = 15)]
-    pub k_size: usize,
+    pub k_size: u64,
 
     /// Output type to write
     #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]

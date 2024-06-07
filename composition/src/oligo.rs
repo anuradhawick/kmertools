@@ -1,7 +1,7 @@
 use kmer::kmer::KmerGenerator;
 use kmer::numeric_to_kmer;
 use ktio::mmap::MMWriter;
-use ktio::seq::{SeqFormat, Sequences};
+use ktio::seq::{SeqFormat, Sequence, Sequences};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::collections::HashMap;
 use std::fs::File;
@@ -111,38 +111,8 @@ impl OligoComputer {
                 let mut buffer = Vec::with_capacity(1000);
                 let mut total = 0_usize;
 
-                for record in records {
-                    total += record.seq.len();
-                    buffer.push(record);
-
-                    if total >= self.memory {
-                        let result = buffer
-                            .par_iter()
-                            .map(|seq| {
-                                let kvec = self.vectorise_one(&seq.seq);
-                                // optimise this with pre-sized string
-                                let kvec_str: Vec<String> = kvec
-                                    .iter()
-                                    .map(|val| {
-                                        if self.norm {
-                                            format!("{:.*}", NUMBER_SIZE - 2, val)
-                                        } else {
-                                            format!("{}", val)
-                                        }
-                                    })
-                                    .collect();
-                                format!("{}\n", kvec_str.join(&self.delim))
-                            })
-                            .collect::<Vec<String>>()
-                            .join("");
-                        out_buffer.write_all(result.as_bytes()).unwrap();
-                        buffer.clear();
-                        total = 0;
-                    }
-                }
-
-                if total > 0 {
-                    // optimise this with pre-sized string
+                // Define a closure to handle buffer processing
+                let mut process_buffer = |buffer: &Vec<Sequence>| {
                     let result = buffer
                         .par_iter()
                         .map(|seq| {
@@ -162,7 +132,21 @@ impl OligoComputer {
                         .collect::<Vec<String>>()
                         .join("");
                     out_buffer.write_all(result.as_bytes()).unwrap();
-                    buffer.clear();
+                };
+
+                for record in records {
+                    total += record.seq.len();
+                    buffer.push(record);
+
+                    if total >= self.memory {
+                        process_buffer(&buffer);
+                        buffer.clear();
+                        total = 0;
+                    }
+                }
+
+                if !buffer.is_empty() {
+                    process_buffer(&buffer);
                 }
             });
         });
