@@ -38,9 +38,9 @@ cargo test
 
 ## Coding Style
 
-We use [clippy](https://doc.rust-lang.org/clippy/) to lint code in kmertools.
+We use [Clippy](https://doc.rust-lang.org/clippy/) to lint code in kmertools.
 
-Before committing, make sure to run clippy.
+Before committing, make sure to run Clippy as follows.
 
 ```shell
 cargo clippy
