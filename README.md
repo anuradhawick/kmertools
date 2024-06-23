@@ -2,6 +2,7 @@
 
 ![GitHub License](https://img.shields.io/github/license/anuradhawick/kmertools)
 [![Cargo tests](https://github.com/anuradhawick/kmertools/actions/workflows/rust_test.yml/badge.svg)](https://github.com/anuradhawick/kmertools/actions/workflows/rust_test.yml)
+[![Clippy check](https://github.com/anuradhawick/kmertools/actions/workflows/clippy_check.yml/badge.svg)](https://github.com/anuradhawick/kmertools/actions/workflows/clippy_check.yml)
 [![codecov](https://codecov.io/gh/anuradhawick/kmertools/graph/badge.svg?token=IDGRE54SSQ)](https://codecov.io/gh/anuradhawick/kmertools)
 
 <div align="center">
