@@ -29,12 +29,12 @@ pub enum SeqFormat {
 impl SeqFormat {
     pub fn get(path: &str) -> Option<SeqFormat> {
         let mut path = path;
-        if path.ends_with("gz") {
-            path = path.trim_end_matches("gz");
+        if path.ends_with(".gz") {
+            path = path.trim_end_matches(".gz");
         }
-        if path.ends_with("fq") || path.ends_with("fastq") {
+        if path.ends_with(".fq") || path.ends_with(".fastq") {
             return Some(SeqFormat::Fastq);
-        } else if path.ends_with("fasta") || path.ends_with("fa") || path.ends_with("fna") {
+        } else if path.ends_with(".fasta") || path.ends_with(".fa") || path.ends_with(".fna") {
             return Some(SeqFormat::Fasta);
         }
         None
