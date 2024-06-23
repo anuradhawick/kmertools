@@ -73,8 +73,8 @@ fn main() {
                 command.input,
                 command.output,
                 command.k_size as usize,
-                command.bin_size,
-                command.bin_size,
+                command.bin_size as usize,
+                command.bin_size as usize,
             );
             if command.threads > 0 {
                 cov.set_threads(command.threads);

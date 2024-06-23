@@ -146,11 +146,11 @@ pub struct CoverageCommand {
 
     /// Bin size for the coverage histogram
     #[arg(short = 's', long = "bin-size", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
-    pub bin_size: usize,
+    pub bin_size: u64,
 
     /// Number of bins for the coverage histogram
     #[arg(short = 'c', long = "bin-count", value_parser = clap::value_parser!(u64).range(5..), default_value_t = 16)]
-    pub bin_count: usize,
+    pub bin_count: u64,
 
     /// Max memory in GB
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(6..=128), default_value_t = 6)]
