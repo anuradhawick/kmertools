@@ -89,6 +89,21 @@ Please read our comprehensive [Wiki](https://github.com/anuradhawick/kmertools/w
 * Anuradha Wickramarachchi [https://anuradhawick.com](https://anuradhawick.com)
 * Vijini Mallawaarachchi [https://vijinimallawaarachchi.com](https://vijinimallawaarachchi.com)
 
+## Citation
+
+If you use `kmertools` please cite as follows.
+
+```bib
+@software{Wickramarachchi_kmertools_DNA_Vectorisation,
+  author = {Wickramarachchi, Anuradha and Mallawaarachchi, Vijini},
+  title = {{kmertools: DNA Vectorisation Tool}},
+  url = {https://github.com/anuradhawick/kmertools},
+  version = {0.1.0}
+}
+```
+
+Please refer to the [Wiki](https://github.com/anuradhawick/kmertools/wiki) for citations of relevant algorithms.
+
 ## Support and contributions
 
 Please get in touch via author websites or GitHub issues. Thanks!
