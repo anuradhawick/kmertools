@@ -24,7 +24,7 @@ $$ | \$$\ $$ | $$ | $$ |\$$$$$$$\ $$ |         $$ |   \$$$$$$  |\$$$$$$  |$$ |$$
 
 `kmertools` is a k-mer based feature extraction tool designed to support metagenomics and other bioinformatics analytics. This tool leverages k-mer analysis to vectorize DNA sequences, facilitating the use of these vectors in various AI/ML applications.
 
-**NEW:** `kmertools` is not available on bioconda at [https://anaconda.org/bioconda/kmertools](https://anaconda.org/bioconda/kmertools).
+**NEW:** `kmertools` is now available on bioconda at [https://anaconda.org/bioconda/kmertools](https://anaconda.org/bioconda/kmertools).
 
 ## Features
 
