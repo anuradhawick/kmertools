@@ -3,8 +3,9 @@
 ![GitHub License](https://img.shields.io/github/license/anuradhawick/kmertools)
 [![Cargo tests](https://github.com/anuradhawick/kmertools/actions/workflows/rust_test.yml/badge.svg)](https://github.com/anuradhawick/kmertools/actions/workflows/rust_test.yml)
 [![Clippy check](https://github.com/anuradhawick/kmertools/actions/workflows/clippy_check.yml/badge.svg)](https://github.com/anuradhawick/kmertools/actions/workflows/clippy_check.yml)
-![Conda](https://img.shields.io/conda/v/bioconda/kmertools)
-![Conda](https://img.shields.io/conda/dn/bioconda/kmertools)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/kmertools/README.html)
+[![Conda](https://img.shields.io/conda/v/bioconda/kmertools)](https://anaconda.org/bioconda/kmertools)
+[![Conda](https://img.shields.io/conda/dn/bioconda/kmertools)](https://anaconda.org/bioconda/kmertools)
 [![codecov](https://codecov.io/gh/anuradhawick/kmertools/graph/badge.svg?token=IDGRE54SSQ)](https://codecov.io/gh/anuradhawick/kmertools)
 
 <div align="center">
