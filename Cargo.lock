@@ -774,7 +774,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pykt"
+name = "pykmertools"
 version = "0.1.0"
 dependencies = [
  "composition",
