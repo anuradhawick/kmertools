@@ -12,3 +12,6 @@ coverage = { path = "../coverage" }
 counter = { path = "../counter" }
 misc = { path = "../misc" }
 ktio = { path = "../ktio" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

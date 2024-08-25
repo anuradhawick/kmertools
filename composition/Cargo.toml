@@ -13,3 +13,6 @@ rayon = "1.10.0"
 
 [lib]
 doctest = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }
