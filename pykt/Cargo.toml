@@ -1,18 +1,17 @@
 [package]
-name = "misc"
+name = "pykt"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 description.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "kmertools"
+crate-type = ["cdylib"]
 
 [dependencies]
-kmer = { path = "../kmer" }
-ktio = { path = "../ktio" }
-indicatif = "0.17.8"
+pyo3 = "0.22.0"
 rayon = "1.10.0"
-scc = "2.1.1"
-
-[lib]
-doctest = false
+composition = { path = "../composition" }
+kmer = { path = "../kmer" }
