@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 test = false
 
 [dependencies]
-pyo3 = "0.22.0"
+pyo3 = { version = "0.22.0", "features" = ["abi3-py39"] }
 rayon = "1.10.0"
 composition = { path = "../composition" }
 kmer = { path = "../kmer" }
