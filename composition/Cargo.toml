@@ -3,6 +3,7 @@ name = "composition"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+description.workspace = true
 
 [dependencies]
 kmer = { path = "../kmer" }
@@ -12,3 +13,6 @@ rayon = "1.10.0"
 
 [lib]
 doctest = false
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

@@ -3,6 +3,7 @@ name = "ktio"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+description.workspace = true
 
 [dependencies]
 bio = "1.6.0"

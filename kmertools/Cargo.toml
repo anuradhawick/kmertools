@@ -3,6 +3,7 @@ name = "kmertools"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+description.workspace = true
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
@@ -11,3 +12,6 @@ coverage = { path = "../coverage" }
 counter = { path = "../counter" }
 misc = { path = "../misc" }
 ktio = { path = "../ktio" }
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(tarpaulin_include)"] }

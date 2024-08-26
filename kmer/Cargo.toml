@@ -3,6 +3,7 @@ name = "kmer"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
+description.workspace = true
 
 [dependencies]
 indicatif = "0.17.8"
