@@ -79,7 +79,6 @@ impl CgrComputer {
     /// Generate the cgrs
     /// Attributes:
     ///     seq (list[str]): list of sequences
-    ///     norm (bool): enable normalisation by counts
     #[pyo3(signature = (seqs))]
     fn vectorise_batch(&self, seqs: Vec<String>) -> PyResult<Vec<Vec<Point>>> {
         seqs.into_par_iter()

@@ -1,10 +1,16 @@
 mod cgr;
+mod cov;
 mod oligo;
 use cgr::CgrComputer;
 use oligo::OligoComputer;
 use pyo3::prelude::*;
 
-/// A Python module implemented in Rust.
+/// Pykmertools: kmertools python wrapper
+/// Modules:
+///     OligoComputer - computing oligonucleotide frequency vectors
+///                     from DNA sequences
+///     CgrComputer   - computing chaos game representations
+///                     for DNA sequences
 #[pymodule]
 fn pykmertools(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<OligoComputer>()?;
