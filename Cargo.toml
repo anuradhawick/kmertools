@@ -1,5 +1,5 @@
 [workspace]
-package.version = "0.1.1"
+package.version = "0.1.2"
 package.edition = "2021"
 package.authors = ["Anuradha Wickramarachchi <anuradhawick@gmail.com>", "Vijini Mallawaarachchi <viji.mallawaarachchi@gmail.com>"]
 package.description = "kmertools is a k-mer based feature extraction tool designed to support metagenomics and other bioinformatics analytics."
