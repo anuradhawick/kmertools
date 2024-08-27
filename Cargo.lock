@@ -777,8 +777,10 @@ dependencies = [
 name = "pykmertools"
 version = "0.1.2"
 dependencies = [
+ "clap",
  "composition",
  "kmer",
+ "kmertools",
  "pyo3",
  "rayon",
 ]

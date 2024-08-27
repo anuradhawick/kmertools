@@ -7,6 +7,7 @@
 [![Conda](https://img.shields.io/conda/v/bioconda/kmertools)](https://anaconda.org/bioconda/kmertools)
 [![Conda](https://img.shields.io/conda/dn/bioconda/kmertools)](https://anaconda.org/bioconda/kmertools)
 [![codecov](https://codecov.io/gh/anuradhawick/kmertools/graph/badge.svg?token=IDGRE54SSQ)](https://codecov.io/gh/anuradhawick/kmertools)
+![PyPI - Version](https://img.shields.io/pypi/v/pykmertools)
 
 <div align="center">
 <pre>
@@ -25,7 +26,11 @@ $$ | \$$\ $$ | $$ | $$ |\$$$$$$$\ $$ |         $$ |   \$$$$$$  |\$$$$$$  |$$ |$$
 
 `kmertools` is a k-mer based feature extraction tool designed to support metagenomics and other bioinformatics analytics. This tool leverages k-mer analysis to vectorize DNA sequences, facilitating the use of these vectors in various AI/ML applications.
 
-**NEW:** `kmertools` is now available on bioconda at [https://anaconda.org/bioconda/kmertools](https://anaconda.org/bioconda/kmertools).
+**NEW** 
+
+* `kmertools` is now available on BioConda at [https://anaconda.org/bioconda/kmertools](https://anaconda.org/bioconda/kmertools).
+* `kmertools` is now available on PyPI at [https://pypi.org/project/pykmertools/](https://pypi.org/project/pykmertools/).
+* `kmertools` now provide python bindings. Read more in our [Wiki](https://github.com/anuradhawick/kmertools/wiki).
 
 ## Features
 
@@ -33,6 +38,7 @@ $$ | \$$\ $$ | $$ | $$ |\$$$$$$$\ $$ |         $$ |   \$$$$$$  |\$$$$$$  |$$ |$$
 - **Minimiser Binning:** Efficiently bin sequences using minimisers to reduce data complexity.
 - **Chaos Game Representation (CGR):** Compute CGR vectors for DNA sequences based on k-mers or whole sequence transformation.
 - **Coverage Histograms:** Create coverage histograms to analyze the depth of sequencing reads.
+- **Python Binding:** You can import kmertools functionality using `import pykmertools as kt`
 
 ## Installation
 
@@ -47,8 +53,15 @@ conda create -n kmertools -c bioconda kmertools
 # activate environment
 conda activate kmertools
 ```
+### Option 2: from PyPI
 
-### Option 2: from sources
+You can install `kmertools` from PyPI at https://pypi.org/project/pykmertools/.
+
+```bash
+pip install pykmertools
+```
+
+### Option 3: from sources
 
 You can install `kmertools` directly from the source by cloning the repository and using Rust's package manager `cargo`.
 

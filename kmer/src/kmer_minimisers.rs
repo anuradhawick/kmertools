@@ -3,6 +3,7 @@ use std::cmp::min;
 use std::collections::VecDeque;
 use std::iter::Iterator;
 
+// TODO I cannot remember why I made this, probably a test script, but well.
 // https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L9C1-L26C3
 const SEQ_NT4_TABLE: [u8; 256] = [
     0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
