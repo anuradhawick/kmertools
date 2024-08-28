@@ -6,5 +6,5 @@ package.description = "kmertools is a k-mer based feature extraction tool design
 package.readme = "README.md"
 package.license-file = "LICENSE"
 
-members = ["composition", "coverage", "kmertools", "kmer", "ktio", "counter", "misc", "pykmertools"]
+members = ["composition", "coverage", "kmertools", "kmer", "ktio", "counter", "misc", "pybindings", "pip", "conda"]
 resolver = "2"

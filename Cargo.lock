@@ -244,6 +244,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "conda"
+version = "0.1.3"
+dependencies = [
+ "clap",
+ "pybindings",
+ "pyo3",
+ "rayon",
+]
+
+[[package]]
 name = "console"
 version = "0.15.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -753,6 +763,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pip"
+version = "0.1.3"
+dependencies = [
+ "clap",
+ "kmertools",
+ "pybindings",
+ "pyo3",
+ "rayon",
+]
+
+[[package]]
 name = "portable-atomic"
 version = "1.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -774,13 +795,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pykmertools"
+name = "pybindings"
 version = "0.1.3"
 dependencies = [
  "clap",
  "composition",
  "kmer",
- "kmertools",
  "pyo3",
  "rayon",
 ]

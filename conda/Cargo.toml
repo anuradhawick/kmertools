@@ -1,5 +1,5 @@
 [package]
-name = "pykmertools"
+name = "conda"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -17,9 +17,4 @@ test = false
 pyo3 = { version = "0.22.0", "features" = ["abi3-py39"] }
 rayon = "1.10.0"
 clap = { version = "4.5.4" }
-composition = { path = "../composition" }
-kmer = { path = "../kmer" }
-kmertools = { path = "../kmertools" }
-
-[features]
-cli = []
+pybindings = { path = "../pybindings" }

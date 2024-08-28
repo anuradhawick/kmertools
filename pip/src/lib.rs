@@ -1,18 +1,10 @@
-mod cgr;
-mod kmer;
-mod min;
-mod oligo;
-use cgr::CgrComputer;
-#[cfg(feature = "cli")]
 use clap::Parser;
-use kmer::KmerGenerator;
-#[cfg(feature = "cli")]
 use kmertools::args::{cli, Cli};
-use min::MinimiserGenerator;
-use oligo::OligoComputer;
+use pybindings::{
+    cgr::CgrComputer, kmer::KmerGenerator, min::MinimiserGenerator, oligo::OligoComputer,
+};
 use pyo3::prelude::*;
 
-#[cfg(feature = "cli")]
 #[pyfunction]
 // TODO: remove after https://github.com/PyO3/maturin/issues/368 is resolved
 fn run_cli(_py: Python) -> PyResult<()> {
@@ -38,7 +30,6 @@ fn pykmertools(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CgrComputer>()?;
     m.add_class::<KmerGenerator>()?;
     m.add_class::<MinimiserGenerator>()?;
-    #[cfg(feature = "cli")]
     m.add_function(wrap_pyfunction!(run_cli, m)?)?;
     Ok(())
 }
