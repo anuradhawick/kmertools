@@ -11,6 +11,7 @@ license-file.workspace = true
 [lib]
 name = "pybindings"
 test = false
+doctest = false
 
 [dependencies]
 pyo3 = { version = "0.22.0", "features" = ["abi3-py39"] }

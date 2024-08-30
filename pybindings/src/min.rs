@@ -27,12 +27,12 @@ impl MinimiserGenerator {
         Self { _mg, _data, msize }
     }
 
-    /// Translate numeric k-mer to ACGT
+    /// Translate numeric minimiser to ACGT
     /// Attributes:
-    ///     kmer (int): value of the k-mer
-    #[pyo3(signature = (kmer))]
-    pub fn to_acgt(&self, kmer: u64) -> String {
-        numeric_to_kmer(kmer, self.msize)
+    ///     mmer (int): value of the minimiser
+    #[pyo3(signature = (mmer))]
+    pub fn to_acgt(&self, mmer: u64) -> String {
+        numeric_to_kmer(mmer, self.msize)
     }
 
     pub fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
@@ -41,7 +41,7 @@ impl MinimiserGenerator {
 
     /// Translate numeric k-mer to ACGT
     /// Returns:
-    ///     Tuple[int, int, int, list[int]]: minimiser, start pos, end pos, k-mers in the window
+    ///     Tuple[int, int, int]: minimiser, start pos, end pos
     pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(Kmer, usize, usize)> {
         slf._mg.next()
     }
