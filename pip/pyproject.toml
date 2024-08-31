@@ -20,7 +20,6 @@ Documentation = "https://github.com/anuradhawick/kmertools/wiki"
 "Source Code" = "https://github.com/anuradhawick/kmertools/"
 
 [tool.maturin]
-include = ["**/*.pyi"]
 features = ["pyo3/extension-module"]
 
 [project.scripts]

@@ -21,4 +21,3 @@ Documentation = "https://github.com/anuradhawick/kmertools/wiki"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
-include = ["**/*.pyi"]
