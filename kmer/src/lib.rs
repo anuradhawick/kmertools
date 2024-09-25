@@ -1,5 +1,6 @@
 pub mod kmer;
 pub mod minimiser;
+pub mod kmer_minimisers;
 pub type Kmer = u64;
 
 pub fn numeric_to_kmer(kmer: u64, k: usize) -> String {

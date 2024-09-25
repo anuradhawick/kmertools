@@ -12,6 +12,7 @@ license-file.workspace = true
 name = "pykmertools"
 crate-type = ["cdylib"]
 test = false
+doctest = false
 
 [dependencies]
 pyo3 = { version = "0.22.0", "features" = ["abi3-py39"] }

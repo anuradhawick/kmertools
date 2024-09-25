@@ -1,34 +1,9 @@
+use composition::cgr::cgr_maps;
 use pyo3::{exceptions::PyValueError, prelude::*};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::collections::HashMap;
 
 type Point = (f64, f64);
-
-fn cgr_maps(vecsize: f64) -> (Point, HashMap<u8, Point>) {
-    let cgr_a: Point = (0.0, 0.0);
-    let cgr_t: Point = (vecsize, 0.0);
-    let cgr_g: Point = (vecsize, vecsize);
-    let cgr_c: Point = (0.0, vecsize);
-    let cgr_center: Point = (vecsize / 2.0, vecsize / 2.0);
-
-    let cgr_dict: HashMap<u8, Point> = [
-        (b'A', cgr_a), // Adenine
-        (b'T', cgr_t), // Thymine
-        (b'G', cgr_g), // Guanine
-        (b'C', cgr_c), // Cytosine
-        (b'U', cgr_t), // Uracil (demethylated form of thymine)
-        (b'a', cgr_a), // Adenine
-        (b't', cgr_t), // Thymine
-        (b'g', cgr_g), // Guanine
-        (b'c', cgr_c), // Cytosine
-        (b'u', cgr_t), // Uracil/Thymine
-    ]
-    .iter()
-    .cloned()
-    .collect();
-
-    (cgr_center, cgr_dict)
-}
 
 /// Computer for generating chaos game representation (cgr)
 #[pyclass]

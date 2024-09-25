@@ -9,6 +9,32 @@ use std::{
 const GB_4: usize = 4 * (1 << 30);
 type Point = (f64, f64);
 
+pub fn cgr_maps(vecsize: f64) -> (Point, HashMap<u8, Point>) {
+    let cgr_a: Point = (0.0, 0.0);
+    let cgr_t: Point = (vecsize, 0.0);
+    let cgr_g: Point = (vecsize, vecsize);
+    let cgr_c: Point = (0.0, vecsize);
+    let cgr_center: Point = (vecsize / 2.0, vecsize / 2.0);
+
+    let cgr_dict: HashMap<u8, Point> = [
+        (b'A', cgr_a), // Adenine
+        (b'T', cgr_t), // Thymine
+        (b'G', cgr_g), // Guanine
+        (b'C', cgr_c), // Cytosine
+        (b'U', cgr_t), // Uracil (demethylated form of thymine)
+        (b'a', cgr_a), // Adenine
+        (b't', cgr_t), // Thymine
+        (b'g', cgr_g), // Guanine
+        (b'c', cgr_c), // Cytosine
+        (b'u', cgr_t), // Uracil/Thymine
+    ]
+    .iter()
+    .cloned()
+    .collect();
+
+    (cgr_center, cgr_dict)
+}
+
 // Code and test adopted from https://github.com/skatila/pycgr (as of 2:55 am Friday, 7 June 2024 Coordinated Universal Time (UTC))
 // Git tag 922ebd4bec482ae6522453c14d3f9dc5d1c99995
 // Under full compliance of GPL-3.0 license (https://github.com/skatila/pycgr/blob/922ebd4bec482ae6522453c14d3f9dc5d1c99995/LICENSE)
@@ -23,7 +49,7 @@ pub struct CgrComputer {
 
 impl CgrComputer {
     pub fn new(in_path: String, out_path: String, vecsize: usize) -> Self {
-        let (cgr_center, cgr_map) = CgrComputer::cgr_maps(vecsize as f64);
+        let (cgr_center, cgr_map) = cgr_maps(vecsize as f64);
         Self {
             in_path,
             out_path,
@@ -115,32 +141,6 @@ impl CgrComputer {
         }
 
         Ok(cgr)
-    }
-
-    fn cgr_maps(vecsize: f64) -> (Point, HashMap<u8, Point>) {
-        let cgr_a: Point = (0.0, 0.0);
-        let cgr_t: Point = (vecsize, 0.0);
-        let cgr_g: Point = (vecsize, vecsize);
-        let cgr_c: Point = (0.0, vecsize);
-        let cgr_center: Point = (vecsize / 2.0, vecsize / 2.0);
-
-        let cgr_dict: HashMap<u8, Point> = [
-            (b'A', cgr_a), // Adenine
-            (b'T', cgr_t), // Thymine
-            (b'G', cgr_g), // Guanine
-            (b'C', cgr_c), // Cytosine
-            (b'U', cgr_t), // Uracil (demethylated form of thymine)
-            (b'a', cgr_a), // Adenine
-            (b't', cgr_t), // Thymine
-            (b'g', cgr_g), // Guanine
-            (b'c', cgr_c), // Cytosine
-            (b'u', cgr_t), // Uracil/Thymine
-        ]
-        .iter()
-        .cloned()
-        .collect();
-
-        (cgr_center, cgr_dict)
     }
 }
 
