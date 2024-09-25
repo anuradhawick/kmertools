@@ -235,7 +235,7 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 
 [[package]]
 name = "composition"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "kmer",
  "ktio",
@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "conda"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "clap",
  "pybindings",
@@ -268,7 +268,7 @@ dependencies = [
 
 [[package]]
 name = "counter"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "indicatif",
  "kmer",
@@ -279,7 +279,7 @@ dependencies = [
 
 [[package]]
 name = "coverage"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "counter",
  "kmer",
@@ -528,14 +528,14 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 
 [[package]]
 name = "kmer"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "indicatif",
 ]
 
 [[package]]
 name = "kmertools"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "clap",
  "composition",
@@ -547,7 +547,7 @@ dependencies = [
 
 [[package]]
 name = "ktio"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "bio",
  "flate2",
@@ -617,7 +617,7 @@ dependencies = [
 
 [[package]]
 name = "misc"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "indicatif",
  "kmer",
@@ -764,7 +764,7 @@ dependencies = [
 
 [[package]]
 name = "pip"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "clap",
  "kmertools",
@@ -796,7 +796,7 @@ dependencies = [
 
 [[package]]
 name = "pybindings"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
  "clap",
  "composition",
