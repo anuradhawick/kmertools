@@ -25,7 +25,15 @@ cd kmertools
 Now build kmertools using cargo. Make sure to have [`rust`](https://docs.conda.io/en/latest/) installed.
 
 ```shell
+# to build the kmertools cli app
 cargo build
+# to build the python wheels
+# pip
+cd pip
+maturin build --release
+# conda
+cd conda 
+maturin build --release
 ```
 
 ## Test kmertools build
@@ -34,6 +42,16 @@ Use the following command to test the build. All tests should pass.
 
 ```shell
 cargo test
+```
+
+To test the python bindings, change directory to either `conda` or `pip` then run following commands.
+
+```shell
+cd pip # or cd conda
+maturin develop
+# go to tests folder
+cd ../tests
+pytest -s
 ```
 
 ## Coding Style
