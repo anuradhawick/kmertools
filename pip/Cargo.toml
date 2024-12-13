@@ -15,7 +15,7 @@ test = false
 doctest = false
 
 [dependencies]
-pyo3 = { version = "0.22.0", "features" = ["abi3-py39"] }
+pyo3 = { version = "0.23.3", "features" = ["abi3-py39"] }
 rayon = "1.10.0"
 clap = { version = "4.5.4" }
 pybindings = { path = "../pybindings" }

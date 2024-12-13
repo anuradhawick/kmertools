@@ -6,7 +6,7 @@ authors.workspace = true
 description.workspace = true
 
 [dependencies]
-bio = "1.6.0"
+bio = "2.0.3"
 flate2 = "1.0.28"
 memmap2 = "0.9.4"
 
