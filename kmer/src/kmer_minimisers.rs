@@ -66,7 +66,7 @@ impl<'a> KmerMinimiserGenerator<'a> {
 }
 
 // technique adopted from https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L77
-impl<'a> Iterator for KmerMinimiserGenerator<'a> {
+impl Iterator for KmerMinimiserGenerator<'_> {
     type Item = (Kmer, usize, usize, Vec<Kmer>);
 
     fn next(&mut self) -> Option<Self::Item> {

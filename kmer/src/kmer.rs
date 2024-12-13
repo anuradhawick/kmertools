@@ -74,7 +74,7 @@ impl<'a> KmerGenerator<'a> {
 }
 
 // technique adopted from https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L77
-impl<'a> Iterator for KmerGenerator<'a> {
+impl Iterator for KmerGenerator<'_> {
     type Item = (Kmer, Kmer);
 
     fn next(&mut self) -> Option<(Kmer, Kmer)> {

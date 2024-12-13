@@ -6,8 +6,8 @@ use std::{cell::UnsafeCell, fs::OpenOptions, ptr};
 pub struct MMWriter<'a, T> {
     slice: &'a [UnsafeCell<T>],
 }
-unsafe impl<'a, T: Send + Sync> Send for MMWriter<'a, T> {}
-unsafe impl<'a, T: Send + Sync> Sync for MMWriter<'a, T> {}
+unsafe impl<T: Send + Sync> Send for MMWriter<'_, T> {}
+unsafe impl<T: Send + Sync> Sync for MMWriter<'_, T> {}
 
 impl<'a, T> MMWriter<'a, T> {
     pub fn new(slice: &'a mut [T]) -> Self {
