@@ -10,9 +10,9 @@ description.workspace = true
 [dependencies]
 kmer = { path = "../kmer" }
 ktio = { path = "../ktio" }
-indicatif = "0.17.8"
+indicatif = "0.18.0"
 rayon = "1.10.0"
-scc = "2.1.1"
+scc = "3.0.7"
 
 [lib]
 doctest = false

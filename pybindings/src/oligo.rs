@@ -34,19 +34,32 @@ impl OligoComputer {
     /// Attributes:
     ///     seq (str): sequence as a string
     ///     norm (bool): enable normalisation by counts
-    #[pyo3(signature = (seq, norm=true))]
-    fn vectorise_one(&self, seq: String, norm: bool) -> Vec<f64> {
-        let mut vec = vec![0_f64; self.kcount];
+    ///     mins (bool): count minimum complement k-mers only
+    #[pyo3(signature = (seq, norm=true, mins=true))]
+    fn vectorise_one(&self, seq: String, norm: bool, mins: bool) -> Vec<f64> {
+        let kcount = if mins {
+            self.kcount
+        } else {
+            4_u64.pow(self.ksize as u32) as usize
+        };
+        let mut vec = vec![0_f64; kcount];
         let mut total = 0_f64;
 
         for (fmer, rmer) in KmerGenerator::new(seq.as_bytes(), self.ksize) {
-            let min_mer = u64::min(fmer, rmer);
-            unsafe {
-                // we already know the size of the vector and
-                // min_mer is absolutely smaller than that
-                let &min_mer_pos = self.pos_map.get_unchecked(min_mer as usize);
-                *vec.get_unchecked_mut(min_mer_pos) += 1_f64;
-                total += 1_f64;
+            if mins {
+                let min_mer = u64::min(fmer, rmer);
+                unsafe {
+                    // we already know the size of the vector and
+                    // min_mer is absolutely smaller than that
+                    let &min_mer_pos = self.pos_map.get_unchecked(min_mer as usize);
+                    *vec.get_unchecked_mut(min_mer_pos) += 1_f64;
+                    total += 1_f64;
+                }
+            } else {
+                unsafe {
+                    *vec.get_unchecked_mut(fmer as usize) += 1_f64;
+                    total += 2_f64;
+                }
             }
         }
         if norm {
@@ -59,19 +72,29 @@ impl OligoComputer {
     /// Attributes:
     ///     seq (list[str]): list of sequences
     ///     norm (bool): enable normalisation by counts
-    #[pyo3(signature = (seqs, norm=true))]
-    fn vectorise_batch(&self, seqs: Vec<String>, norm: bool) -> Vec<Vec<f64>> {
+    ///     mins (bool): count minimum complement k-mers only
+    #[pyo3(signature = (seqs, norm=true, mins=true))]
+    fn vectorise_batch(&self, seqs: Vec<String>, norm: bool, mins: bool) -> Vec<Vec<f64>> {
         seqs.into_par_iter()
-            .map(|seq| self.vectorise_one(seq, norm))
+            .map(|seq| self.vectorise_one(seq, norm, mins))
             .collect()
     }
 
     /// Generate the header for oligo nucletide vector
-    fn get_header(&self) -> Vec<String> {
-        let mut kmers = vec![String::new(); self.kcount];
-        for (&pos, &kmer) in self.pos_kmer.iter() {
-            kmers[pos] = numeric_to_kmer(kmer, self.ksize);
+    #[pyo3(signature = (mins=true))]
+    fn get_header(&self, mins: bool) -> Vec<String> {
+        if mins {
+            let mut kmers = vec![String::new(); self.kcount];
+            for (&pos, &kmer) in self.pos_kmer.iter() {
+                kmers[pos] = numeric_to_kmer(kmer, self.ksize);
+            }
+            kmers
+        } else {
+            let mut kmers = vec![String::new(); 4_u64.pow(self.ksize as u32) as usize];
+            for kmer in 0..(4_u64.pow(self.ksize as u32)) {
+                kmers[kmer as usize] = numeric_to_kmer(kmer, self.ksize);
+            }
+            kmers
         }
-        kmers
     }
 }

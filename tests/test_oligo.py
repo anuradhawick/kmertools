@@ -23,3 +23,13 @@ def test_oligo():
     ]
     for g, t in zip(oligos_generated, oligos_truth):
         assert g == t
+
+
+def test_oligo_header():
+    oligo_gen = kt.OligoComputer(4)
+    header_generated = oligo_gen.get_header()
+
+    assert len(header_generated) == 136
+
+    header_generated_raw = oligo_gen.get_header(False)
+    assert len(header_generated_raw) == 256

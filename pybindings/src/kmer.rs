@@ -1,7 +1,7 @@
-use std::{mem::transmute, sync::Arc};
-
-use kmer::{kmer::KmerGenerator as RsKmerGenerator, numeric_to_kmer, Kmer};
+use kmer::{kmer::KmerGenerator as RsKmerGenerator, kmer_to_numeric, numeric_to_kmer, Kmer};
+use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
+use std::{collections::HashMap, mem::transmute, sync::Arc};
 
 /// Computer for generating k-mers
 #[pyclass]
@@ -26,12 +26,10 @@ impl KmerGenerator {
         Self { _kg, _data, ksize }
     }
 
-    /// Translate numeric k-mer to ACGT
-    /// Attributes:
-    ///     kmer (int): value of the k-mer
-    #[pyo3(signature = (kmer))]
-    pub fn to_acgt(&self, kmer: u64) -> String {
-        numeric_to_kmer(kmer, self.ksize)
+    /// Get the k-mer position maps for the KmerGenerator
+    #[pyo3(signature = ())]
+    pub fn kmer_pos_maps(&self) -> (Vec<usize>, HashMap<usize, u64>, usize) {
+        RsKmerGenerator::kmer_pos_maps(self.ksize)
     }
 
     pub fn __iter__(slf: PyRef<'_, Self>) -> PyRef<'_, Self> {
@@ -41,4 +39,35 @@ impl KmerGenerator {
     pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(Kmer, Kmer)> {
         slf._kg.next()
     }
+}
+
+/// Translate numeric k-mer to ACGT
+/// Attributes:
+///     kmer (int): value of the k-mer
+///     ksize (int): size of the k-mer
+#[pyfunction]
+pub fn to_acgt(kmer: u64, ksize: usize) -> String {
+    numeric_to_kmer(kmer, ksize)
+}
+
+/// Translate ACGT kmer to numeric pair
+/// Attributes:
+///     kmer (str): k-mer string
+#[pyfunction]
+pub fn to_numeric(kmer: String) -> PyResult<(u64, u64)> {
+    if kmer.len() > 32 {
+        return Err(PyValueError::new_err(format!(
+            "Invalid k-mer length: {}, must be <= 32",
+            kmer.len()
+        )));
+    }
+    Ok(kmer_to_numeric(&kmer))
+}
+
+pub fn register_utils_module(parent_module: &Bound<'_, PyModule>) -> PyResult<()> {
+    let utils_module = PyModule::new(parent_module.py(), "utils")?;
+    let _ = utils_module.add_function(wrap_pyfunction!(to_acgt, &utils_module)?);
+    let _ = utils_module.add_function(wrap_pyfunction!(to_numeric, &utils_module)?);
+    parent_module.add_submodule(&utils_module)?;
+    Ok(())
 }

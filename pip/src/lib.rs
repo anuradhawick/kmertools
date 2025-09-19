@@ -1,7 +1,10 @@
 use clap::Parser;
 use kmertools::args::{cli, Cli};
 use pybindings::{
-    cgr::CgrComputer, kmer::KmerGenerator, min::MinimiserGenerator, oligo::OligoComputer,
+    cgr::CgrComputer,
+    kmer::{register_utils_module, KmerGenerator},
+    min::MinimiserGenerator,
+    oligo::OligoComputer,
 };
 use pyo3::prelude::*;
 
@@ -24,6 +27,7 @@ fn run_cli(_py: Python) -> PyResult<()> {
 ///                          as (forward, reverse) numeric kmer tuples
 ///     MinimiserGenerator - an iterator object to iterate minimisers
 ///                          as (kmer, start, end) numeric minimiser tuples
+///     utils              - utility functions
 #[pymodule]
 fn pykmertools(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<OligoComputer>()?;
@@ -31,5 +35,6 @@ fn pykmertools(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<KmerGenerator>()?;
     m.add_class::<MinimiserGenerator>()?;
     m.add_function(wrap_pyfunction!(run_cli, m)?)?;
+    register_utils_module(m)?;
     Ok(())
 }

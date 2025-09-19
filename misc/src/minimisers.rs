@@ -48,7 +48,7 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
                         };
                         for (k, s, e) in mgen {
                             result_arc_clone
-                                .entry(numeric_to_kmer(k, msize))
+                                .entry_sync(numeric_to_kmer(k, msize))
                                 .and_modify(|v| v.push((record.id.clone(), s, e)))
                                 .or_insert(vec![(record.id.clone(), s, e)]);
                         }
@@ -78,8 +78,9 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
     let outf = fs::File::create(out_path).unwrap();
     let mut buff = BufWriter::new(outf);
 
-    result_arc.scan(|k, v| {
+    result_arc.iter_sync(|k, v| {
         buff.write_all(format!("{k}\t{v:?}\n").as_bytes()).unwrap();
+        true
     });
 }
 

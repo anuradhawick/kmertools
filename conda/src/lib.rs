@@ -1,5 +1,8 @@
 use pybindings::{
-    cgr::CgrComputer, kmer::KmerGenerator, min::MinimiserGenerator, oligo::OligoComputer,
+    cgr::CgrComputer,
+    kmer::{register_utils_module, KmerGenerator},
+    min::MinimiserGenerator,
+    oligo::OligoComputer,
 };
 use pyo3::prelude::*;
 
@@ -13,11 +16,13 @@ use pyo3::prelude::*;
 ///                          as (forward, reverse) numeric kmer tuples
 ///     MinimiserGenerator - an iterator object to iterate minimisers
 ///                          as (kmer, start, end) numeric minimiser tuples
+///     utils              - utility functions
 #[pymodule]
 fn pykmertools(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<OligoComputer>()?;
     m.add_class::<CgrComputer>()?;
     m.add_class::<KmerGenerator>()?;
     m.add_class::<MinimiserGenerator>()?;
+    register_utils_module(m)?;
     Ok(())
 }

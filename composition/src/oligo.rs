@@ -17,6 +17,7 @@ pub struct OligoComputer {
     out_path: String,
     ksize: usize,
     kcount: usize,
+    count_min: bool,
     threads: usize,
     pos_map: Vec<usize>,
     pos_kmer: HashMap<usize, u64>,
@@ -27,12 +28,13 @@ pub struct OligoComputer {
 }
 
 impl OligoComputer {
-    pub fn new(in_path: String, out_path: String, ksize: usize) -> Self {
+    pub fn new(in_path: String, out_path: String, ksize: usize, count_min: bool) -> Self {
         let (min_mer_pos_map, pos_min_mer_map, kcount) = KmerGenerator::kmer_pos_maps(ksize);
         Self {
             in_path,
             out_path,
             ksize,
+            count_min,
             kcount,
             pos_map: min_mer_pos_map,
             pos_kmer: pos_min_mer_map,
@@ -65,11 +67,19 @@ impl OligoComputer {
     }
 
     fn get_header(&self) -> Vec<String> {
-        let mut kmers = vec![String::new(); self.kcount];
-        for (&pos, &kmer) in self.pos_kmer.iter() {
-            kmers[pos] = numeric_to_kmer(kmer, self.ksize);
+        if self.count_min {
+            let mut kmers = vec![String::new(); self.kcount];
+            for (&pos, &kmer) in self.pos_kmer.iter() {
+                kmers[pos] = numeric_to_kmer(kmer, self.ksize);
+            }
+            kmers
+        } else {
+            let mut kmers = vec![String::new(); 4_u64.pow(self.ksize as u32) as usize];
+            for kmer in 0..(4_u64.pow(self.ksize as u32)) {
+                kmers[kmer as usize] = numeric_to_kmer(kmer, self.ksize);
+            }
+            kmers
         }
-        kmers
     }
 
     // this function cannot be fully tested becaue we cannot have stdin at test time
@@ -219,17 +229,27 @@ impl OligoComputer {
     }
 
     fn vectorise_one(&self, seq: &[u8]) -> Vec<f64> {
-        let mut vec = vec![0_f64; self.kcount];
+        let kcount = if self.count_min {
+            self.kcount
+        } else {
+            4_u64.pow(self.ksize as u32) as usize
+        };
+        let mut vec = vec![0_f64; kcount];
         let mut total = 0_f64;
 
         for (fmer, rmer) in KmerGenerator::new(seq, self.ksize) {
-            let min_mer = u64::min(fmer, rmer);
             unsafe {
-                // we already know the size of the vector and
-                // min_mer is absolutely smaller than that
-                let &min_mer_pos = self.pos_map.get_unchecked(min_mer as usize);
-                *vec.get_unchecked_mut(min_mer_pos) += 1_f64;
-                total += 1_f64;
+                if self.count_min {
+                    let min_mer = u64::min(fmer, rmer);
+                    // we already know the size of the vector and
+                    // min_mer is absolutely smaller than that
+                    let &min_mer_pos = self.pos_map.get_unchecked(min_mer as usize);
+                    *vec.get_unchecked_mut(min_mer_pos) += 1_f64;
+                    total += 1_f64;
+                } else {
+                    *vec.get_unchecked_mut(fmer as usize) += 1_f64;
+                    total += 1_f64;
+                }
             }
         }
         if self.norm {
@@ -247,16 +267,41 @@ mod tests {
     const PATH_FQ: &str = "../test_data/reads.fq";
 
     #[test]
+    fn kmer_vec_raw_counts_test() {
+        let com = OligoComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/reads.kmers".to_owned(),
+            4,
+            false,
+        );
+        let kvec = com.vectorise_one(b"AAAANGAGA");
+        assert_eq!(kvec.len(), 4_u64.pow(4) as usize);
+        let header = com.get_header();
+        assert_eq!(header[0], "AAAA");
+        assert_eq!(header.last().unwrap(), &"TTTT");
+        assert_eq!(header.len(), kvec.len());
+    }
+
+    #[test]
     fn kmer_vec_norm_test() {
-        let com = OligoComputer::new(PATH_FQ.to_owned(), "../test_data/reads.kmers".to_owned(), 4);
+        let com = OligoComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/reads.kmers".to_owned(),
+            4,
+            true,
+        );
         let kvec = com.vectorise_one(b"AAAANGAGA");
         assert_eq!(kvec[0], 0.5);
     }
 
     #[test]
     fn kmer_vec_unnorm_test() {
-        let mut com =
-            OligoComputer::new(PATH_FQ.to_owned(), "../test_data/reads.kmers".to_owned(), 4);
+        let mut com = OligoComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/reads.kmers".to_owned(),
+            4,
+            true,
+        );
         com.set_norm(false);
         let kvec = com.vectorise_one(b"AAAANGAGA");
         assert_eq!(kvec[0], 1.0);
@@ -269,6 +314,7 @@ mod tests {
             PATH_FQ.to_owned(),
             "../test_data/computed_fa.kmers".to_owned(),
             4,
+            true,
         );
         let _ = com.vectorise_mmap();
         assert_eq!(
@@ -284,6 +330,7 @@ mod tests {
                 PATH_FQ.to_owned(),
                 "../test_data/computed_fa_mmap.kmers".to_owned(),
                 4,
+                true,
             );
             com.set_threads(8);
             let _ = com.vectorise_mmap();
@@ -301,6 +348,7 @@ mod tests {
                 PATH_FQ.to_owned(),
                 "../test_data/computed_fa_batch.kmers".to_owned(),
                 4,
+                true,
             );
             com.set_max_memory(100);
             com.set_threads(8);
@@ -326,6 +374,7 @@ mod tests {
                 PATH_FQ.to_owned(),
                 "../test_data/computed_fa_batch_unnorm.kmers".to_owned(),
                 4,
+                true,
             );
             com.set_threads(8);
             com.set_norm(false);
@@ -343,6 +392,7 @@ mod tests {
             PATH_FQ.to_owned(),
             "../test_data/computed_fa_batch_unnorm.kmers".to_owned(),
             4,
+            true,
         );
         let header = com.get_header();
         assert_eq!(header[0], "AAAA");
@@ -355,6 +405,7 @@ mod tests {
             PATH_FQ.to_owned(),
             "../test_data/computed_fa_batch_header.kmers".to_owned(),
             4,
+            true,
         );
         com.set_header(true);
         let _ = com.vectorise_batch();
@@ -370,6 +421,7 @@ mod tests {
             PATH_FQ.to_owned(),
             "../test_data/computed_fa_mmap_header.kmers".to_owned(),
             4,
+            true,
         );
         com.set_header(true);
         let _ = com.vectorise_mmap();

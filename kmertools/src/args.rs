@@ -85,6 +85,10 @@ pub struct OligoCommand {
     #[arg(short, long, value_parser = clap::value_parser!(u64).range(3..=7), default_value_t = 3)]
     pub k_size: u64,
 
+    /// Raw counts
+    #[arg(short, long)]
+    pub raw_count: bool,
+
     /// Output type to write
     #[clap(value_enum, short, long, default_value_t = VecFmtPreset::Spc)]
     pub preset: VecFmtPreset,
@@ -236,8 +240,12 @@ pub fn cli(cli: Cli) {
     match cli.command {
         Commands::Comp { command } => match command {
             CompositionCommands::Oligo(command) => {
-                let mut com =
-                    OligoComputer::new(command.input, command.output, command.k_size as usize);
+                let mut com = OligoComputer::new(
+                    command.input,
+                    command.output,
+                    command.k_size as usize,
+                    !command.raw_count,
+                );
                 if command.threads > 0 {
                     com.set_threads(command.threads);
                 }

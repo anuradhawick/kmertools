@@ -12,9 +12,44 @@ Modules:
                          as (kmer, start, end) numeric minimiser tuples
 """
 
-from typing import List, Tuple, Dict, Iterator
+from typing import List, Tuple, Dict, Iterator, Protocol
+from typing_extensions import runtime_checkable
 
 Point = Tuple[float, float]
+
+@runtime_checkable
+class _UtilsModule(Protocol):
+    @staticmethod
+    def to_acgt(kmer: int, ksize: int) -> str:
+        """
+        Convert numeric kmer to string kmer
+
+        Args:
+            kmer (int): value of the k-mer.
+            ksize (int): size of the k-mer.
+
+        Returns:
+            str: ACGT alphabetic representation of the kmer.
+        """
+        ...
+
+    @staticmethod
+    def to_numeric(kmer: str) -> Tuple[int, int]:
+        """
+        Convert string kmer to numeric kmer.
+
+        Args:
+            kmer (str): ACGT alphabetic representation of the kmer.
+
+        Returns:
+            Tuple[int, int]: A tuple containing forward and reverse k-mers
+
+        Raises:
+            ValueError: kmer length is different.
+        """
+        ...
+
+utils = _UtilsModule
 
 class CgrComputer:
     """
@@ -84,15 +119,17 @@ class KmerGenerator:
         """
         ...
 
-    def to_acgt(self, kmer: int) -> str:
+    def kmer_pos_maps(self) -> Tuple[List[int], Dict[int, int], int]:
         """
-        Initialise the KmerGenerator.
-
-        Args:
-            kmer (int): value of the k-mer.
+        Get the k-mer position maps for the KmerGenerator.
 
         Returns:
-            str: ACGT alphabetic representation of the kmer.
+            Tuple[List[int], Dict[int, int], int]: A tuple containing:
+                - A list mapping of size 4^ksize each index corresponds to minimum complement
+                  k-mer in integer representation.
+                - A dictionary mapping minimum complement k-mer integer representation to its
+                  index in above list.
+                - The total number of possible minimum complement k-mers.
         """
         ...
 
@@ -147,13 +184,16 @@ class OligoComputer:
         """
         ...
 
-    def vectorise_one(self, seq: str, norm: bool = True) -> List[float]:
+    def vectorise_one(
+        self, seq: str, norm: bool = True, mins: bool = True
+    ) -> List[float]:
         """
         Generate the CGR for a single sequence.
 
         Args:
             seq (str): The sequence as a string.
             norm (bool): enable normalisation by counts.
+            mins (bool): count minimum complement k-mers only.
 
         Returns:
             List[float]: A list of floats representing the oligonuclotide frequency vector of the sequence.
@@ -163,13 +203,16 @@ class OligoComputer:
         """
         ...
 
-    def vectorise_batch(self, seqs: List[str], norm: bool = True) -> List[List[float]]:
+    def vectorise_batch(
+        self, seqs: List[str], norm: bool = True, mins: bool = True
+    ) -> List[List[float]]:
         """
         Generate the CGRs for a batch of sequences.
 
         Args:
             seqs (List[str]): A list of sequences.
             norm (bool): enable normalisation by counts.
+            mins (bool): count minimum complement k-mers only.
 
         Returns:
             List[List[Point]]: A list of lists, each representing the oligonuclotide frequency vector of the sequence.
@@ -179,4 +222,22 @@ class OligoComputer:
         """
         ...
 
-__all__ = ["CgrComputer", "KmerGenerator", "MinimiserGenerator", "OligoComputer"]
+    def get_header(self, mins: bool = True) -> List[str]:
+        """
+        Generate the header for oligo nucleotide vector.
+
+        Args:
+            mins (bool): count minimum complement k-mers only.
+
+        Returns:
+            List[str]: A list of strings representing the header for the oligo nucleotide vector.
+        """
+        ...
+
+__all__ = [
+    "CgrComputer",
+    "KmerGenerator",
+    "MinimiserGenerator",
+    "OligoComputer",
+    "utils",
+]

@@ -1,4 +1,5 @@
 import pykmertools as kt
+from  pykmertools import utils as ktutils
 
 
 def test_kmers():
@@ -7,4 +8,4 @@ def test_kmers():
     kmers_acgt = ["ACG", "CGT", "GTC", "TCC"]
 
     for (fmer, _), acgt_mer in zip(kmers, kmers_acgt):
-        assert kmer_gen.to_acgt(fmer) == acgt_mer
+        assert ktutils.to_acgt(fmer, len(acgt_mer)) == acgt_mer
