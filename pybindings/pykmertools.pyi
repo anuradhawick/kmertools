@@ -49,7 +49,7 @@ class _UtilsModule(Protocol):
         """
         ...
 
-utils = _UtilsModule
+utils: _UtilsModule
 
 class CgrComputer:
     """
