@@ -27,6 +27,12 @@ $$ | \$$\ $$ | $$ | $$ |\$$$$$$$\ $$ |         $$ |   \$$$$$$  |\$$$$$$  |$$ |$$
 
 `kmertools` is a k-mer based feature extraction tool designed to support metagenomics and other bioinformatics analytics. This tool leverages k-mer analysis to vectorize DNA sequences, facilitating the use of these vectors in various AI/ML applications.
 
+<div align="center">
+<a href="https://www.star-history.com/#anuradhawick/kmertools&Date">
+  <img width="600px" src="https://api.star-history.com/svg?repos=anuradhawick/kmertools&type=Date" alt="Star History Chart">
+</a>
+</div>
+
 ## Features
 
 - **Oligonucleotide Frequency Vectors:** Generate frequency vectors for oligonucleotides.
