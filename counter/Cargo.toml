@@ -13,6 +13,7 @@ kmer = { path = "../kmer" }
 ktio = { path = "../ktio" }
 rayon = "1.10.0"
 scc = "2.1.0"
+thiserror.workspace = true
 
 [lib]
 doctest = false

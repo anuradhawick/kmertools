@@ -1,5 +1,6 @@
 use counter::CountComputer;
 use kmer::{kmer::KmerGenerator, Kmer};
+use ktio::Result;
 use ktio::seq::{SeqFormat, Sequences};
 use rayon::prelude::*;
 use std::{
@@ -66,7 +67,7 @@ impl CovComputer {
         self.memory_ceil_gb = memory_ceil_gb;
     }
 
-    pub fn build_table(&self) -> Result<(), String> {
+    pub fn build_table(&self) -> Result<()> {
         let mut ctr =
             CountComputer::new(self.in_path_kmer.clone(), self.out_dir.clone(), self.ksize);
         ctr.set_threads(self.threads);
@@ -83,7 +84,7 @@ impl CovComputer {
         let buff = BufReader::new(file);
         let mut counts = HashMap::new();
 
-        for line in buff.lines().map_while(Result::ok) {
+        for line in buff.lines().map_while(std::result::Result::ok) {
             let mut parts = line.trim().split('\t');
             let kmer: Kmer = parts.next().unwrap().parse().unwrap();
             let count: u32 = parts.next().unwrap().parse().unwrap();

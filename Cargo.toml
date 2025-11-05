@@ -8,3 +8,7 @@ package.license-file = "LICENSE"
 
 members = ["composition", "coverage", "kmertools", "kmer", "ktio", "counter", "misc", "pybindings", "pip", "conda"]
 resolver = "2"
+
+[workspace.dependencies]
+thiserror = "2.0"
+anyhow = "1.0"

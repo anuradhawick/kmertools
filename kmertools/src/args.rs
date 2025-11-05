@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use clap::{Args, Parser, Subcommand, ValueEnum};
 use composition::{cgr::CgrComputer, oligo::OligoComputer, oligocgr::OligoCgrComputer};
 use coverage::CovComputer;
@@ -236,7 +237,7 @@ pub struct CounterCommand {
 }
 
 #[cfg(not(tarpaulin_include))]
-pub fn cli(cli: Cli) {
+pub fn cli(cli: Cli) -> Result<()> {
     match cli.command {
         Commands::Comp { command } => match command {
             CompositionCommands::Oligo(command) => {
@@ -257,9 +258,8 @@ pub fn cli(cli: Cli) {
                     VecFmtPreset::Spc => com.set_delim(" ".to_owned()),
                     VecFmtPreset::Tsv => com.set_delim("\t".to_owned()),
                 }
-                if let Err(e) = com.vectorise() {
-                    eprintln!("Error: {}", e);
-                }
+                com.vectorise()
+                    .context("Failed to generate oligonucleotide vectors")?;
             }
             CompositionCommands::Cgr(command) => {
                 if let Some(ksize) = command.k_size {
@@ -277,27 +277,26 @@ pub fn cli(cli: Cli) {
                         cgr.set_threads(command.threads);
                     }
                     cgr.set_norm(!command.counts);
-                    if let Err(e) = cgr.vectorise() {
-                        eprintln!("Error: {}", e);
-                    }
+                    cgr.vectorise()
+                        .context("Failed to generate k-mer CGR vectors")?;
                 } else {
-                    if command.counts {
-                        eprintln!("Error: cannot use counts in whole sequence CGR!");
-                        return;
-                    }
+                    anyhow::ensure!(
+                        !command.counts,
+                        "Cannot use counts mode with whole sequence CGR"
+                    );
                     let vecsize = command.vec_size.unwrap_or(1) as usize;
                     let mut cgr = CgrComputer::new(command.input, command.output, vecsize);
                     if command.threads > 0 {
                         cgr.set_threads(command.threads);
                     }
-                    if let Err(e) = cgr.vectorise() {
-                        eprintln!("Error: {}", e);
-                    }
+                    cgr.vectorise()
+                        .context("Failed to generate whole sequence CGR")?;
                 }
             }
         },
         Commands::Cov(command) => {
-            create_directory(&command.output).unwrap();
+            create_directory(&command.output)
+                .context("Failed to create output directory")?;
             let mut cov = CovComputer::new(
                 command.input,
                 command.output,
@@ -320,18 +319,19 @@ pub fn cli(cli: Cli) {
                 VecFmtPreset::Spc => cov.set_delim(" ".to_owned()),
                 VecFmtPreset::Tsv => cov.set_delim("\t".to_owned()),
             }
-            cov.build_table().unwrap();
+            cov.build_table()
+                .context("Failed to build k-mer coverage table")?;
             cov.compute_coverages();
         }
         Commands::Min(command) => {
-            if command.w_size <= command.m_size && command.w_size > 0 {
-                eprintln!("Window size must be longer than minimiser size!");
-                return;
-            }
-            if command.m_size >= 31 {
-                eprintln!("Minimisers longer than 30 bases not allowed!");
-                return;
-            }
+            anyhow::ensure!(
+                command.w_size == 0 || command.w_size > command.m_size,
+                "Window size must be longer than minimiser size"
+            );
+            anyhow::ensure!(
+                command.m_size < 31,
+                "Minimisers longer than 30 bases not allowed"
+            );
 
             match command.preset {
                 MinFmtPreset::M2s => minimisers::bin_sequences(
@@ -351,7 +351,8 @@ pub fn cli(cli: Cli) {
             }
         }
         Commands::Ctr(command) => {
-            create_directory(&command.output).unwrap();
+            create_directory(&command.output)
+                .context("Failed to create output directory")?;
             let mut ctr =
                 counter::CountComputer::new(command.input, command.output, command.k_size as usize);
             if command.threads > 0 {
@@ -365,4 +366,5 @@ pub fn cli(cli: Cli) {
             ctr.merge(true);
         }
     }
+    Ok(())
 }

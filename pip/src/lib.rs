@@ -13,7 +13,7 @@ use pyo3::prelude::*;
 fn run_cli(_py: Python) -> PyResult<()> {
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     let parsed_args = Cli::parse_from(&args);
-    cli(parsed_args);
+    cli(parsed_args).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
     Ok(())
 }
 

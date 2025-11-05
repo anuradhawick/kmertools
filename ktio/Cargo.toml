@@ -9,6 +9,7 @@ description.workspace = true
 bio = "2.0.3"
 flate2 = "1.0.28"
 memmap2 = "0.9.4"
+thiserror.workspace = true
 
 [lib]
 doctest = false

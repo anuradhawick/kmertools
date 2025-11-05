@@ -254,6 +254,7 @@ dependencies = [
  "ktio",
  "memmap2",
  "rayon",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -301,6 +302,7 @@ dependencies = [
  "ktio",
  "rayon",
  "scc 2.4.0",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -312,6 +314,7 @@ dependencies = [
  "ktio",
  "rayon",
  "scc 2.4.0",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -594,6 +597,7 @@ dependencies = [
 name = "kmertools"
 version = "0.2.1"
 dependencies = [
+ "anyhow",
  "clap",
  "composition",
  "counter",
@@ -609,6 +613,7 @@ dependencies = [
  "bio",
  "flate2",
  "memmap2",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -687,6 +692,7 @@ dependencies = [
  "ktio",
  "rayon",
  "scc 3.0.7",
+ "thiserror 2.0.16",
 ]
 
 [[package]]

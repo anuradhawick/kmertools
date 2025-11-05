@@ -1,5 +1,6 @@
 use kmer::kmer::KmerGenerator;
 use kmer::numeric_to_kmer;
+use ktio::Result;
 use ktio::mmap::MMWriter;
 use ktio::seq::{SeqFormat, Sequence, Sequences};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
@@ -85,26 +86,23 @@ impl OligoComputer {
     // this function cannot be fully tested becaue we cannot have stdin at test time
     // TODO remove stdin if needed
     #[cfg(not(tarpaulin_include))]
-    pub fn vectorise(&self) -> Result<(), String> {
+    pub fn vectorise(&self) -> Result<()> {
         if self.in_path == "-" || !self.norm {
             return self.vectorise_batch();
         }
         self.vectorise_mmap()
     }
 
-    fn vectorise_batch(&self) -> Result<(), String> {
-        let mut reader = ktio::seq::get_reader(&self.in_path).unwrap();
-        let buffer = reader
-            .fill_buf()
-            .map_err(|_| String::from("Invalid stream"))?;
+    fn vectorise_batch(&self) -> Result<()> {
+        let mut reader = ktio::seq::get_reader(&self.in_path)?;
+        let buffer = reader.fill_buf()?;
         let format = if buffer[0] == b'>' {
             SeqFormat::Fasta
         } else {
             SeqFormat::Fastq
         };
-        let records = Sequences::new(format, reader).unwrap();
-        let file = File::create(&self.out_path)
-            .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
+        let records = Sequences::new(format, reader)?;
+        let file = File::create(&self.out_path)?;
         let mut out_buffer = BufWriter::new(file);
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
@@ -164,14 +162,14 @@ impl OligoComputer {
         Ok(())
     }
 
-    fn vectorise_mmap(&self) -> Result<(), String> {
+    fn vectorise_mmap(&self) -> Result<()> {
         // only works for normalised (we need fixed length outputs)
         assert!(self.norm);
         let per_line_size = self.kcount * (NUMBER_SIZE + 1);
         // pre-calculate file size
         let mut estimated_file_size = {
             let format = SeqFormat::get(&self.in_path).unwrap();
-            let reader = ktio::seq::get_reader(&self.in_path).unwrap();
+            let reader = ktio::seq::get_reader(&self.in_path)?;
             Sequences::seq_stats(format, reader).seq_count
         } * per_line_size;
         let mut header = String::new();
@@ -183,8 +181,8 @@ impl OligoComputer {
         let mut mmap = ktio::mmap::mmap_file_for_writing(&self.out_path, estimated_file_size)?;
         // get reader
         let format = SeqFormat::get(&self.in_path).unwrap();
-        let reader = ktio::seq::get_reader(&self.in_path).unwrap();
-        let records = Sequences::new(format, reader).unwrap();
+        let reader = ktio::seq::get_reader(&self.in_path)?;
+        let records = Sequences::new(format, reader)?;
         let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()

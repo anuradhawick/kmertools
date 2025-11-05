@@ -1,3 +1,4 @@
+use crate::error::Result;
 use bio::io::fasta::{Reader as FastaReader, Records as FastaRecords};
 use bio::io::fastq::{Reader as FastqReader, Records as FastqRecords};
 use std::fs::File;
@@ -47,7 +48,7 @@ pub struct Sequences<R: BufRead> {
 }
 
 impl<R: BufRead> Sequences<R> {
-    pub fn new(format: SeqFormat, reader: R) -> Result<Self, String> {
+    pub fn new(format: SeqFormat, reader: R) -> Result<Self> {
         match format {
             SeqFormat::Fastq => {
                 let fastq_reader = FastqReader::new(reader);
@@ -138,13 +139,13 @@ impl<R: BufRead> Iterator for Sequences<R> {
     }
 }
 
-pub fn get_reader(path: &str) -> Result<BufReader<Box<dyn Read + Sync + Send>>, String> {
+pub fn get_reader(path: &str) -> Result<BufReader<Box<dyn Read + Sync + Send>>> {
     if path == "-" {
         let stdin = io::stdin();
         Ok(BufReader::new(Box::new(stdin)))
     } else {
         let is_zip = path.ends_with(".gz");
-        let file = File::open(path).map_err(|_| format!("Unable to open: {}", path))?;
+        let file = File::open(path)?;
         if is_zip {
             let decoder = flate2::read::GzDecoder::new(file);
             Ok(BufReader::new(Box::new(decoder)))

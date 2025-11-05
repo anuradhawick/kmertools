@@ -1,3 +1,4 @@
+use crate::error::{KmertoolsError, Result};
 use memmap2::{MmapMut, MmapOptions};
 use std::{cell::UnsafeCell, fs::OpenOptions, ptr};
 
@@ -29,19 +30,17 @@ impl<'a, T> MMWriter<'a, T> {
     }
 }
 
-pub fn mmap_file_for_writing(path: &str, size: usize) -> Result<MmapMut, String> {
+pub fn mmap_file_for_writing(path: &str, size: usize) -> Result<MmapMut> {
     let file = OpenOptions::new()
         .read(true)
         .write(true)
         .truncate(true)
         .create(true)
-        .open(path)
-        .map_err(|_| format!("Could not mmap: {}", path))?;
-    file.set_len(size as u64)
-        .map_err(|_| format!("Could not mmap: {}", path))?;
+        .open(path)?;
+    file.set_len(size as u64)?;
     unsafe {
         MmapOptions::new()
             .map_mut(&file)
-            .map_err(|_| format!("Could not mmap: {}", path))
+            .map_err(|e| KmertoolsError::SystemError(format!("Memory mapping failed for {}: {}", path, e)))
     }
 }

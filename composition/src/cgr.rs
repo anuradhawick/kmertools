@@ -1,3 +1,4 @@
+use ktio::{KmertoolsError, Result};
 use ktio::seq::{SeqFormat, Sequence, Sequences};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::{
@@ -64,19 +65,16 @@ impl CgrComputer {
         self.threads = threads;
     }
 
-    pub fn vectorise(&self) -> Result<(), String> {
-        let mut reader = ktio::seq::get_reader(&self.in_path).unwrap();
-        let buffer = reader
-            .fill_buf()
-            .map_err(|_| String::from("Invalid stream"))?;
+    pub fn vectorise(&self) -> Result<()> {
+        let mut reader = ktio::seq::get_reader(&self.in_path)?;
+        let buffer = reader.fill_buf()?;
         let format = if buffer[0] == b'>' {
             SeqFormat::Fasta
         } else {
             SeqFormat::Fastq
         };
-        let records = Sequences::new(format, reader).unwrap();
-        let file = File::create(&self.out_path)
-            .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
+        let records = Sequences::new(format, reader)?;
+        let file = File::create(&self.out_path)?;
         let mut out_buffer = BufWriter::new(file);
         let pool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
@@ -124,7 +122,7 @@ impl CgrComputer {
         Ok(())
     }
 
-    fn vectorise_one(&self, seq: &[u8]) -> Result<Vec<Point>, String> {
+    fn vectorise_one(&self, seq: &[u8]) -> Result<Vec<Point>> {
         let mut cgr = Vec::with_capacity(seq.len());
         let mut cgr_marker = self.cgr_center;
 
@@ -136,7 +134,9 @@ impl CgrComputer {
                 );
                 cgr.push(cgr_marker);
             } else {
-                return Err("Bad nucleotide, unable to proceed".to_string());
+                return Err(KmertoolsError::InvalidInputError(
+                    format!("Invalid nucleotide '{}' at position", *s as char)
+                ));
             }
         }
 
