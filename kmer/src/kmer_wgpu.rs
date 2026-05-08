@@ -197,7 +197,10 @@ impl Iterator for KmerGeneratorWGPU<'_> {
         while self.buffer.is_empty() {
             if self.done { return None; }
             self.process_batch();
+            if !self.buffer.is_empty() {
+                self.buffer.reverse();
+            }
         }
-        Some(self.buffer.remove(0))
+        self.buffer.pop()
     }
 }
