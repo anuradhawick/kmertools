@@ -26,6 +26,8 @@ impl KmerGenerator {
     /// Attributes:
     ///     seq (str): string from which to extract k-mers
     ///     ksize (int): size of the k-mers to count
+    ///     backend (str): backend to use for k-mer generation. Accepted values are
+    ///         `"cpu"` and `"wgpu"`. Defaults to `"cpu"`.
     #[new]
     #[pyo3(signature = (seq, ksize, backend = "cpu"))]
     pub fn new(seq: String, ksize: usize, backend: &str) -> PyResult<Self> {
