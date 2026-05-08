@@ -88,6 +88,28 @@ fn encode_base(b: u8) -> u32 {
     }
 }
 
+fn get_wgpu_device_queue() -> Result<(wgpu::Device, wgpu::Queue), String> {
+    static DEVICE_QUEUE: std::sync::OnceLock<Result<(wgpu::Device, wgpu::Queue), String>> =
+        std::sync::OnceLock::new();
+
+    match DEVICE_QUEUE.get_or_init(|| {
+        pollster::block_on(async {
+            let instance = wgpu::Instance::default();
+            let adapter = instance
+                .request_adapter(&wgpu::RequestAdapterOptions::default())
+                .await
+                .ok_or_else(|| "No GPU adapter".to_string())?;
+            adapter
+                .request_device(&wgpu::DeviceDescriptor::default(), None)
+                .await
+                .map_err(|e| e.to_string())
+        })
+    }) {
+        Ok((device, queue)) => Ok((device.clone(), queue.clone())),
+        Err(e) => Err(e.clone()),
+    }
+}
+
 fn compute_kmers_wgpu(seq: &[u8], ksize: usize) -> Result<Vec<(Kmer, Kmer)>, String> {
     if ksize > 16 {
         return Err(format!(
@@ -99,17 +121,9 @@ fn compute_kmers_wgpu(seq: &[u8], ksize: usize) -> Result<Vec<(Kmer, Kmer)>, Str
         return Ok(Vec::new());
     }
 
-    pollster::block_on(async move {
-        let instance = wgpu::Instance::default();
-        let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions::default())
-            .await
-            .ok_or("No GPU adapter")?;
-        let (device, queue) = adapter
-            .request_device(&wgpu::DeviceDescriptor::default(), None)
-            .await
-            .map_err(|e| e.to_string())?;
+    let (device, queue) = get_wgpu_device_queue()?;
 
+    pollster::block_on(async move {
         let in_data: Vec<u32> = seq.iter().map(|&b| encode_base(b)).collect();
         let out_len = seq.len() - ksize + 1;
 
