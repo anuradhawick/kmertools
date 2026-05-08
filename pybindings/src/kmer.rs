@@ -1,4 +1,8 @@
-use kmer::{kmer::KmerGenerator as RsKmerGenerator, kmer_to_numeric, numeric_to_kmer, Kmer};
+use kmer::{
+    kmer::KmerGenerator as RsKmerGenerator,
+    kmer_wgpu::KmerGeneratorWGPU as RsKmerGeneratorWGPU,
+    kmer_to_numeric, numeric_to_kmer, Kmer,
+};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use std::{collections::HashMap, mem::transmute, sync::Arc};
@@ -7,8 +11,13 @@ use std::{collections::HashMap, mem::transmute, sync::Arc};
 #[pyclass]
 pub struct KmerGenerator {
     _data: Arc<[u8]>,
-    _kg: RsKmerGenerator<'static>,
+    _kg: KmerBackend,
     ksize: usize,
+}
+
+enum KmerBackend {
+    Cpu(RsKmerGenerator<'static>),
+    Wgpu(RsKmerGeneratorWGPU<'static>),
 }
 
 #[pymethods]
@@ -18,12 +27,20 @@ impl KmerGenerator {
     ///     seq (str): string from which to extract k-mers
     ///     ksize (int): size of the k-mers to count
     #[new]
-    #[pyo3(signature = (seq, ksize))]
-    pub fn new(seq: String, ksize: usize) -> Self {
+    #[pyo3(signature = (seq, ksize, backend = "cpu"))]
+    pub fn new(seq: String, ksize: usize, backend: &str) -> PyResult<Self> {
         let _data: Arc<[u8]> = Arc::from(seq.into_boxed_str().into_boxed_bytes());
         let static_str: &'static [u8] = unsafe { transmute(Arc::as_ref(&_data)) };
-        let _kg = RsKmerGenerator::new(static_str, ksize);
-        Self { _kg, _data, ksize }
+        let _kg = match backend {
+            "cpu" => KmerBackend::Cpu(RsKmerGenerator::new(static_str, ksize)),
+            "wgpu" => KmerBackend::Wgpu(RsKmerGeneratorWGPU::new(static_str, ksize)),
+            _ => {
+                return Err(PyValueError::new_err(format!(
+                    "Invalid backend: {backend}. Expected one of: cpu, wgpu"
+                )))
+            }
+        };
+        Ok(Self { _kg, _data, ksize })
     }
 
     /// Get the k-mer position maps for the KmerGenerator
@@ -37,7 +54,10 @@ impl KmerGenerator {
     }
 
     pub fn __next__(mut slf: PyRefMut<'_, Self>) -> Option<(Kmer, Kmer)> {
-        slf._kg.next()
+        match &mut slf._kg {
+            KmerBackend::Cpu(kg) => kg.next(),
+            KmerBackend::Wgpu(kg) => kg.next(),
+        }
     }
 }
 
