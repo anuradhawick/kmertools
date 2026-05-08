@@ -89,7 +89,13 @@ fn encode_base(b: u8) -> u32 {
 }
 
 fn compute_kmers_wgpu(seq: &[u8], ksize: usize) -> Result<Vec<(Kmer, Kmer)>, String> {
-    if ksize == 0 || seq.len() < ksize || ksize > 16 {
+    if ksize > 16 {
+        return Err(format!(
+            "WGPU backend does not support ksize {} (maximum supported ksize is 16)",
+            ksize
+        ));
+    }
+    if ksize == 0 || seq.len() < ksize {
         return Ok(Vec::new());
     }
 
