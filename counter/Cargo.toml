@@ -8,11 +8,11 @@ description.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-indicatif = "0.17.8"
+indicatif = { workspace = true }
 kmer = { path = "../kmer" }
 ktio = { path = "../ktio" }
-rayon = "1.10.0"
-scc = "2.1.0"
+rayon = { workspace = true }
+scc = { workspace = true }
 
 [lib]
 doctest = false

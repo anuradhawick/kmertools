@@ -1,10 +1,34 @@
 [workspace]
-package.version = "0.2.1"
+package.version = "0.2.2"
 package.edition = "2021"
-package.authors = ["Anuradha Wickramarachchi <anuradhawick@gmail.com>", "Vijini Mallawaarachchi <viji.mallawaarachchi@gmail.com>"]
+package.authors = [
+    "Anuradha Wickramarachchi <anuradhawick@gmail.com>",
+    "Vijini Mallawaarachchi <viji.mallawaarachchi@gmail.com>",
+]
 package.description = "kmertools is a k-mer based feature extraction tool designed to support metagenomics and other bioinformatics analytics."
 package.readme = "README.md"
 package.license-file = "LICENSE"
 
-members = ["composition", "coverage", "kmertools", "kmer", "ktio", "counter", "misc", "pybindings", "pip", "conda"]
+members = [
+    "composition",
+    "coverage",
+    "kmertools",
+    "kmer",
+    "ktio",
+    "counter",
+    "misc",
+    "pybindings",
+    "pip",
+    "conda",
+]
 resolver = "2"
+
+[workspace.dependencies]
+rayon = "1.12.0"
+memmap2 = "0.9.10"
+pyo3 = { version = "0.29.0" }
+clap = { version = "4.6.1" }
+scc = "3.7.3"
+indicatif = "0.18.4"
+bio = "4.0.0"
+flate2 = "1.1.9"

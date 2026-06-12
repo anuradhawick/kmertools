@@ -6,7 +6,7 @@ authors.workspace = true
 description.workspace = true
 
 [dependencies]
-clap = { version = "4.5.4", features = ["derive"] }
+clap = { workspace = true, features = ["derive"] }
 composition = { path = "../composition" }
 coverage = { path = "../coverage" }
 counter = { path = "../counter" }

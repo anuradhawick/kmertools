@@ -14,8 +14,8 @@ test = false
 doctest = false
 
 [dependencies]
-pyo3 = { version = "0.26.0", "features" = ["abi3-py39"] }
-rayon = "1.10.0"
-clap = { version = "4.5.4" }
+pyo3 = { workspace = true, "features" = ["abi3-py310"] }
+rayon = { workspace = true }
+clap = { workspace = true }
 pybindings = { path = "../pybindings" }
 kmertools = { path = "../kmertools" }
