@@ -5,6 +5,7 @@ edition.workspace = true
 authors.workspace = true
 description.workspace = true
 readme.workspace = true
+license-file.workspace = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
@@ -14,7 +15,7 @@ test = false
 doctest = false
 
 [dependencies]
-pyo3 = { workspace = true, "features" = ["abi3-py39"] }
+pyo3 = { workspace = true, "features" = ["abi3-py310"] }
 rayon = { workspace = true }
 clap = { workspace = true }
 pybindings = { path = "../pybindings" }
