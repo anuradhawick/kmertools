@@ -125,7 +125,7 @@ impl CountComputer {
                                 unsafe {
                                     counts_table_arc_clone
                                         .get_unchecked((min_mer % self.n_parts) as usize)
-                                        .entry(min_mer)
+                                        .entry_sync(min_mer)
                                         .and_modify(|v| *v += 1)
                                         .or_insert(1);
                                 }
@@ -159,9 +159,10 @@ impl CountComputer {
                     ))
                     .unwrap();
                     let mut buff = BufWriter::new(outf);
-                    map.scan(|k, v| {
+                    map.iter_sync(|k, v| {
                         buff.write_all(format!("{}\t{:?}\n", k, v).as_bytes())
                             .unwrap();
+                        true
                     });
                 })
         });
@@ -206,7 +207,7 @@ impl CountComputer {
                             let mut parts = line.trim().split('\t');
                             let kmer: Kmer = parts.next().unwrap().parse().unwrap();
                             let count: u32 = parts.next().unwrap().parse().unwrap();
-                            *map_arc_clone.entry(kmer).or_insert(0) += count;
+                            *map_arc_clone.entry_sync(kmer).or_insert(0) += count;
                         }
                         if delete {
                             delete_file_if_exists(&path).expect("file must be removable");
@@ -217,7 +218,7 @@ impl CountComputer {
                 }
             });
 
-            map_arc.scan(|k, v| {
+            map_arc.iter_sync(|k, v| {
                 if self.acgt {
                     buff.write_all(
                         format!("{}\t{:?}\n", numeric_to_kmer(*k, self.ksize), v).as_bytes(),
@@ -227,6 +228,7 @@ impl CountComputer {
                     buff.write_all(format!("{}\t{:?}\n", k, v).as_bytes())
                         .unwrap();
                 }
+                true
             });
         }
 
