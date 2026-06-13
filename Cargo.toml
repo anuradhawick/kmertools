@@ -32,3 +32,4 @@ scc = "3.7.3"
 indicatif = "0.18.4"
 bio = "4.0.0"
 flate2 = "1.1.9"
+ruint = { version = "1.18.0", default-features = false }

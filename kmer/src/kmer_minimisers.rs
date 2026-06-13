@@ -1,4 +1,4 @@
-use super::Kmer;
+use super::KmerWord;
 use std::cmp::min;
 use std::collections::VecDeque;
 use std::iter::Iterator;
@@ -17,63 +17,81 @@ const SEQ_NT4_TABLE: [u8; 256] = [
 ];
 const REV_MASK: u64 = 3;
 
-pub struct KmerMinimiserGenerator<'a> {
+pub struct KmerMinimiserGenerator<'a, K: KmerWord = u64, M: KmerWord = K> {
     seq: &'a [u8],
     pos: usize,
     wsize: usize,
     msize: usize,
-    m_mask: u64,
+    m_mask: M,
     m_window_start: usize,
     m_window_end: usize,
-    m_val_f: u64,
-    m_val_r: u64,
+    m_val_f: M,
+    m_val_r: M,
     m_val_l: usize,
-    m_active: u64,
-    m_shift: u64,
-    k_mask: u64,
-    k_val_f: u64,
-    k_val_r: u64,
+    m_active: M,
+    m_shift: usize,
+    k_mask: K,
+    k_val_f: K,
+    k_val_r: K,
     k_val_l: usize,
-    k_shift: u64,
-    buff: VecDeque<u64>,
+    k_shift: usize,
+    buff: VecDeque<M>,
     buff_pos: usize,
 }
 
-impl<'a> KmerMinimiserGenerator<'a> {
+impl<'a, K: KmerWord, M: KmerWord> KmerMinimiserGenerator<'a, K, M> {
     pub fn new(seq: &'a [u8], wsize: usize, msize: usize) -> Self {
+        assert!(msize > 0, "minimiser size must be non-zero");
+        assert!(
+            wsize >= msize,
+            "window size must be at least minimiser size"
+        );
+        let m_bits = 2 * msize;
+        let k_bits = 2 * wsize;
+        assert!(
+            m_bits <= M::BITS,
+            "minimiser requires {m_bits} bits but representation holds {}",
+            M::BITS
+        );
+        assert!(
+            k_bits <= K::BITS,
+            "k-mer requires {k_bits} bits but representation holds {}",
+            K::BITS
+        );
+
         KmerMinimiserGenerator {
             seq,
             wsize,
             msize,
             pos: 0,
             buff_pos: 0,
-            m_active: u64::MAX,
-            m_mask: (1_u64 << (2 * msize)) - 1,
-            m_val_f: 0,
-            m_val_r: 0,
+            m_active: M::MAX,
+            m_mask: M::MAX >> (M::BITS - m_bits),
+            m_val_f: M::ZERO,
+            m_val_r: M::ZERO,
             m_val_l: 0,
-            k_mask: (1_u64 << (2 * wsize)) - 1,
-            k_val_f: 0,
-            k_val_r: 0,
+            k_mask: K::MAX >> (K::BITS - k_bits),
+            k_val_f: K::ZERO,
+            k_val_r: K::ZERO,
             k_val_l: 0,
             m_window_end: 0,
             m_window_start: 0,
             buff: VecDeque::with_capacity(wsize - msize + 1),
-            m_shift: 2 * (msize - 1) as u64,
-            k_shift: 2 * (wsize - 1) as u64,
+            m_shift: 2 * (msize - 1),
+            k_shift: 2 * (wsize - 1),
         }
     }
 }
 
 // technique adopted from https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L77
-impl Iterator for KmerMinimiserGenerator<'_> {
-    type Item = (Kmer, usize, usize, Vec<Kmer>);
+impl<K: KmerWord, M: KmerWord> Iterator for KmerMinimiserGenerator<'_, K, M> {
+    type Item = (M, usize, usize, Vec<K>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut min_m_val: u64;
+        let mut min_m_val: M;
         let mut k_buff = Vec::new();
         let mut prev_k_buff = Vec::new();
-        let mut prev_m_val: u64;
+        let mut prev_m_val: M;
         let mut prev_w_start: usize;
         let mut prev_w_end: usize;
 
@@ -88,12 +106,12 @@ impl Iterator for KmerMinimiserGenerator<'_> {
             if pos_f_val < 4 {
                 // non ambiguous
                 // kmer
-                self.k_val_f = ((self.k_val_f << 2) | pos_f_val) & self.k_mask;
-                self.k_val_r = (self.k_val_r >> 2) | (pos_r_val << self.k_shift);
+                self.k_val_f = ((self.k_val_f << 2) | K::from_u64(pos_f_val)) & self.k_mask;
+                self.k_val_r = (self.k_val_r >> 2) | (K::from_u64(pos_r_val) << self.k_shift);
                 self.k_val_l += 1;
                 // minimiser
-                self.m_val_f = ((self.m_val_f << 2) | pos_f_val) & self.m_mask;
-                self.m_val_r = (self.m_val_r >> 2) | (pos_r_val << self.m_shift);
+                self.m_val_f = ((self.m_val_f << 2) | M::from_u64(pos_f_val)) & self.m_mask;
+                self.m_val_r = (self.m_val_r >> 2) | (M::from_u64(pos_r_val) << self.m_shift);
                 self.m_val_l += 1;
             } else {
                 // ambiguous
@@ -106,12 +124,12 @@ impl Iterator for KmerMinimiserGenerator<'_> {
                     prev_k_buff.clone_from(&k_buff)
                 }
                 self.buff_pos = 0;
-                self.m_active = u64::MAX;
-                self.m_val_f = 0;
-                self.m_val_r = 0;
+                self.m_active = M::MAX;
+                self.m_val_f = M::ZERO;
+                self.m_val_r = M::ZERO;
                 self.m_val_l = 0;
-                self.k_val_f = 0;
-                self.k_val_r = 0;
+                self.k_val_f = K::ZERO;
+                self.k_val_r = K::ZERO;
                 self.k_val_l = 0;
                 self.m_window_end = 0;
                 self.m_window_start = self.pos + 1;
@@ -147,7 +165,7 @@ impl Iterator for KmerMinimiserGenerator<'_> {
 
                 // we have removed the minimum
                 if self.buff_pos == 0 {
-                    let mut new_min = u64::MAX;
+                    let mut new_min = M::MAX;
                     for j in 0..self.buff.len() {
                         if *self.buff.get(j).unwrap() < new_min {
                             self.buff_pos = j;
@@ -185,7 +203,7 @@ impl Iterator for KmerMinimiserGenerator<'_> {
             }
 
             // first time we are experiencing all minimizers
-            if self.m_active == u64::MAX && self.buff.len() == self.wsize - self.msize + 1 {
+            if self.m_active == M::MAX && self.buff.len() == self.wsize - self.msize + 1 {
                 for j in 0..self.buff.len() {
                     if *self.buff.get(j).unwrap() < self.m_active {
                         self.buff_pos = j;
@@ -213,7 +231,7 @@ mod tests {
     #[test]
     fn minimisers_generated_test() {
         // Acquired from https://homolog.us/blogs/bioinfo/2017/10/25/intro-minimizer/
-        let mg = KmerMinimiserGenerator::new(b"ATGCGATATCGTAGGCGTCGATGGAGAGCTAGATCGATCGATCTAAATCCCGATCGATTCCGAGCGCGATCAAAGCGCGATAGGCTAGCTAAAGCTAGCA", 31, 7);
+        let mg = KmerMinimiserGenerator::<u64, u64>::new(b"ATGCGATATCGTAGGCGTCGATGGAGAGCTAGATCGATCGATCTAAATCCCGATCGATTCCGAGCGCGATCAAAGCGCGATAGGCTAGCTAAAGCTAGCA", 31, 7);
         let expected = [
             ("ATGCGATATCGTAGGCGTCGATGGAGAGCTA", "ACGATAT"),
             ("CTAGCTCTCCATCGACGCCTACGATATCGCA", "ACGATAT"),
@@ -300,7 +318,7 @@ mod tests {
     #[test]
     fn minimisers_generated_with_error_test() {
         // Acquired from https://homolog.us/blogs/bioinfo/2017/10/25/intro-minimizer/
-        let mg = KmerMinimiserGenerator::new(b"ATGCGATATCGNTAGGCGTCGATGGA", 8, 5);
+        let mg = KmerMinimiserGenerator::<u64, u64>::new(b"ATGCGATATCGNTAGGCGTCGATGGA", 8, 5);
         let expected = [
             ("ATGCGATA", "ATCGC"),
             ("ATATCGCA", "ATCGC"),

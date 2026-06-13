@@ -101,6 +101,7 @@ impl CountComputer {
         let counts_table_arc = Arc::new(counts_table);
         // make pbar for all bases struct wide
 
+        // Count kmers until the memory limit is reached, then write the counts to disk and start next chunk
         pool.scope(|scope| {
             for _ in 0..self.threads {
                 let records_arc_clone = Arc::clone(&self.records);
@@ -148,6 +149,7 @@ impl CountComputer {
             return 0;
         }
 
+        // write counts to disk
         pool.scope(|_| {
             counts_table_arc
                 .par_iter()
@@ -167,6 +169,7 @@ impl CountComputer {
                 })
         });
 
+        // return number of records processed in this chunk
         total_records.load(Ordering::Acquire)
     }
 
