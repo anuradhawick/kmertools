@@ -115,6 +115,8 @@ mod tests {
 
     #[test]
     fn raw_reverse_shift_and_or_match_u64() {
+        #[allow(clippy::identity_op)]
+        // Here I am validating actual operations, nothing to lint away.
         let native = (0b0001_u64 >> 2) | (0b11_u64 << 6);
         let wide: KmerU256 =
             (KmerU256::from_u64(0b0001) >> 2_usize) | (KmerU256::from_u64(0b11) << 6_usize);

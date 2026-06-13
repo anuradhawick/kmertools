@@ -1,5 +1,8 @@
 use indicatif::ProgressBar;
-use kmer::{minimiser::MinimiserGenerator, numeric_to_kmer};
+use kmer::{
+    minimiser::MinimiserGenerator, numeric_to_kmer, KmerU1024, KmerU2048, KmerU256, KmerU512,
+    KmerWord,
+};
 use ktio::seq::*;
 use scc::HashMap as SccMap;
 use std::{
@@ -9,6 +12,24 @@ use std::{
 };
 
 pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, threads: usize) {
+    match msize {
+        1..=32 => bin_sequences_with::<u64>(wsize, msize, in_path, out_path, threads),
+        33..=64 => bin_sequences_with::<u128>(wsize, msize, in_path, out_path, threads),
+        65..=128 => bin_sequences_with::<KmerU256>(wsize, msize, in_path, out_path, threads),
+        129..=256 => bin_sequences_with::<KmerU512>(wsize, msize, in_path, out_path, threads),
+        257..=512 => bin_sequences_with::<KmerU1024>(wsize, msize, in_path, out_path, threads),
+        513..=1024 => bin_sequences_with::<KmerU2048>(wsize, msize, in_path, out_path, threads),
+        _ => panic!("minimiser size must be between 1 and 1024 bases"),
+    }
+}
+
+fn bin_sequences_with<K: KmerWord>(
+    wsize: usize,
+    msize: usize,
+    in_path: &str,
+    out_path: &str,
+    threads: usize,
+) {
     let mut threads = threads;
     if threads == 0 {
         threads = rayon::current_num_threads();
@@ -42,9 +63,9 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
                     };
                     if let Some(record) = record {
                         let mgen = if wsize == 0 {
-                            MinimiserGenerator::new(&record.seq, record.seq.len(), msize)
+                            MinimiserGenerator::<K>::new(&record.seq, record.seq.len(), msize)
                         } else {
-                            MinimiserGenerator::new(&record.seq, wsize, msize)
+                            MinimiserGenerator::<K>::new(&record.seq, wsize, msize)
                         };
                         for (k, s, e) in mgen {
                             result_arc_clone
@@ -85,6 +106,24 @@ pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, 
 }
 
 pub fn seq_to_min(wsize: usize, msize: usize, in_path: &str, out_path: &str, threads: usize) {
+    match msize {
+        1..=32 => seq_to_min_with::<u64>(wsize, msize, in_path, out_path, threads),
+        33..=64 => seq_to_min_with::<u128>(wsize, msize, in_path, out_path, threads),
+        65..=128 => seq_to_min_with::<KmerU256>(wsize, msize, in_path, out_path, threads),
+        129..=256 => seq_to_min_with::<KmerU512>(wsize, msize, in_path, out_path, threads),
+        257..=512 => seq_to_min_with::<KmerU1024>(wsize, msize, in_path, out_path, threads),
+        513..=1024 => seq_to_min_with::<KmerU2048>(wsize, msize, in_path, out_path, threads),
+        _ => panic!("minimiser size must be between 1 and 1024 bases"),
+    }
+}
+
+fn seq_to_min_with<K: KmerWord>(
+    wsize: usize,
+    msize: usize,
+    in_path: &str,
+    out_path: &str,
+    threads: usize,
+) {
     let mut threads = threads;
     if threads == 0 {
         threads = rayon::current_num_threads();
@@ -118,9 +157,9 @@ pub fn seq_to_min(wsize: usize, msize: usize, in_path: &str, out_path: &str, thr
                     };
                     if let Some(record) = record {
                         let mgen = if wsize == 0 {
-                            MinimiserGenerator::new(&record.seq, record.seq.len(), msize)
+                            MinimiserGenerator::<K>::new(&record.seq, record.seq.len(), msize)
                         } else {
-                            MinimiserGenerator::new(&record.seq, wsize, msize)
+                            MinimiserGenerator::<K>::new(&record.seq, wsize, msize)
                         };
                         let mut mins = Vec::new();
                         mins.push(record.id);
@@ -165,6 +204,7 @@ mod tests {
     use ktio::fops::load_lines_sorted;
 
     const PATH_FQ: &str = "../test_data/reads.fq";
+    const PATH_FA: &str = "../test_data/reads.fa";
 
     #[test]
     fn bin_sequences_test() {
@@ -181,6 +221,23 @@ mod tests {
         seq_to_min(31, 7, PATH_FQ, "../test_data/computed_seq_minimisers", 32);
         let exp = load_lines_sorted("../test_data/expected_seq_minimisers");
         let res = load_lines_sorted("../test_data/computed_seq_minimisers");
+        println!("Result  : {:?}", res);
+        println!("Expected: {:?}", exp);
+        assert_eq!(exp, res);
+    }
+
+    #[test]
+    fn seq_to_min_supports_three_limb_minimisers() {
+        seq_to_min(
+            70,
+            50,
+            PATH_FA,
+            "../test_data/computed_seq_minimisers_wide",
+            1,
+        );
+
+        let exp = load_lines_sorted("../test_data/expected_seq_minimisers_wide");
+        let res = load_lines_sorted("../test_data/computed_seq_minimisers_wide");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);

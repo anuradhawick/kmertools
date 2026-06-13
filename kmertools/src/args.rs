@@ -185,7 +185,7 @@ pub struct MinimiserCommand {
     pub output: String,
 
     /// Minimiser size
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=28), default_value_t = 10)]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=1024), default_value_t = 10)]
     pub m_size: u64,
 
     /// Window size
@@ -328,11 +328,6 @@ pub fn cli(cli: Cli) {
                 eprintln!("Window size must be longer than minimiser size!");
                 return;
             }
-            if command.m_size >= 31 {
-                eprintln!("Minimisers longer than 30 bases not allowed!");
-                return;
-            }
-
             match command.preset {
                 MinFmtPreset::M2s => minimisers::bin_sequences(
                     command.w_size as usize,
