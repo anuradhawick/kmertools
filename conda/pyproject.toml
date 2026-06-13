@@ -10,7 +10,8 @@ classifiers = [
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dynamic = ["version", "description", "license", "readme"]
+license = "GPL-3.0-only"
+dynamic = ["version", "description", "readme"]
 keywords = ["genomics", "bioinformatics"]
 
 
