@@ -1,5 +1,5 @@
 [workspace]
-package.version = "0.2.2"
+package.version = "0.1.0"
 package.edition = "2021"
 package.authors = [
     "Anuradha Wickramarachchi <anuradhawick@gmail.com>",
@@ -32,3 +32,4 @@ scc = "3.7.3"
 indicatif = "0.18.4"
 bio = "4.0.0"
 flate2 = "1.1.9"
+ruint = { version = "1.18.0", default-features = false }

@@ -1,6 +1,8 @@
 pub mod kmer;
 pub mod kmer_minimisers;
+pub mod kmer_word;
 pub mod minimiser;
+pub use kmer_word::{KmerU1024, KmerU128, KmerU2048, KmerU256, KmerU512, KmerWord};
 pub type Kmer = u64;
 
 // https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L9C1-L26C3
@@ -16,11 +18,11 @@ const SEQ_NT4_TABLE: [u8; 256] = [
 ];
 const REV_MASK: u64 = 3;
 
-pub fn numeric_to_kmer(kmer: u64, k: usize) -> String {
+pub fn numeric_to_kmer<K: KmerWord>(kmer: K, k: usize) -> String {
     let mut s = String::new();
     let mut kmer = kmer;
     for _ in 0..k {
-        let c = match kmer & 0b11 {
+        let c = match (kmer & K::from_u64(0b11)).to_u64() {
             0b00 => 'A',
             0b01 => 'C',
             0b10 => 'G',
@@ -28,20 +30,28 @@ pub fn numeric_to_kmer(kmer: u64, k: usize) -> String {
             _ => panic!("Impossible!"),
         };
         s.push(c);
-        kmer >>= 2;
+        kmer = kmer >> 2;
     }
     s.chars().rev().collect()
 }
 
-pub fn kmer_to_numeric(kmer: &str) -> (u64, u64) {
-    let mut fval = 0;
-    let mut rval = 0;
-    let shift = 2 * (kmer.len() - 1) as u64;
-    let mask = (1_u64 << (2 * kmer.len())) - 1;
+pub fn kmer_to_numeric<K: KmerWord>(kmer: &str) -> (K, K) {
+    assert!(!kmer.is_empty(), "k-mer must be non-empty");
+    let used_bits = 2 * kmer.len();
+    assert!(
+        used_bits <= K::BITS,
+        "k-mer requires {used_bits} bits but representation holds {}",
+        K::BITS
+    );
+
+    let mut fval = K::ZERO;
+    let mut rval = K::ZERO;
+    let shift = 2 * (kmer.len() - 1);
+    let mask = K::MAX >> (K::BITS - used_bits);
 
     for c in kmer.chars() {
-        let pos_f_val = SEQ_NT4_TABLE[c as usize] as u64;
-        let pos_r_val = pos_f_val ^ REV_MASK;
+        let pos_f_val = K::from_u64(SEQ_NT4_TABLE[c as usize] as u64);
+        let pos_r_val = pos_f_val ^ K::from_u64(REV_MASK);
         fval = ((fval << 2) | pos_f_val) & mask;
         rval = (rval >> 2) | (pos_r_val << shift);
     }
@@ -55,8 +65,8 @@ mod tests {
 
     #[test]
     fn numeric_to_kmer_test() {
-        let kmer_1 = numeric_to_kmer(0b0001101111, 5);
-        let kmer_2 = numeric_to_kmer(0b0000011011, 5);
+        let kmer_1 = numeric_to_kmer(0b0001101111_u64, 5);
+        let kmer_2 = numeric_to_kmer(0b0000011011_u64, 5);
 
         assert_eq!(kmer_1, "ACGTT");
         assert_eq!(kmer_2, "AACGT");
@@ -64,9 +74,17 @@ mod tests {
 
     #[test]
     fn kmer_to_numeric_test() {
-        let (fval, rval) = kmer_to_numeric("ACGTT"); // rev AACGT
+        let (fval, rval) = kmer_to_numeric::<u64>("ACGTT"); // rev AACGT
 
         assert_eq!(fval, 0b0001101111);
         assert_eq!(rval, 0b0000011011);
+    }
+
+    #[test]
+    fn wide_kmer_conversion_test() {
+        let sequence = "ACGT".repeat(40);
+        let (fval, _) = kmer_to_numeric::<KmerU512>(&sequence);
+
+        assert_eq!(numeric_to_kmer(fval, sequence.len()), sequence);
     }
 }

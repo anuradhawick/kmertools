@@ -32,7 +32,6 @@ class _UtilsModule(Protocol):
             str: ACGT alphabetic representation of the kmer.
         """
         ...
-
     @staticmethod
     def to_numeric(kmer: str) -> Tuple[int, int]:
         """
@@ -64,7 +63,6 @@ class CgrComputer:
             vecsize (int): Size of the vector to initialise the CGR map.
         """
         ...
-
     def vectorise_one(self, seq: str) -> List[Point]:
         """
         Generate the CGR for a single sequence.
@@ -79,7 +77,6 @@ class CgrComputer:
             ValueError: If the sequence contains an invalid nucleotide.
         """
         ...
-
     def vectorise_batch(self, seqs: List[str]) -> List[List[Point]]:
         """
         Generate the CGRs for a batch of sequences.
@@ -109,7 +106,6 @@ class KmerGenerator:
             ksize (int): The size of k-mers to generate.
         """
         ...
-
     def __iter__(self) -> Iterator[Tuple[int, int]]:
         """
         Return an iterator that yields (forward, reverse) numeric kmer tuples.
@@ -118,7 +114,6 @@ class KmerGenerator:
             Iterator[Tuple[int, int]]: An iterator over k-mer tuples (forward and reverse strands).
         """
         ...
-
     def kmer_pos_maps(self) -> Tuple[List[int], Dict[int, int], int]:
         """
         Get the k-mer position maps for the KmerGenerator.
@@ -148,7 +143,6 @@ class MinimiserGenerator:
             msize (int): size of the minimiser.
         """
         ...
-
     def __iter__(self) -> Iterator[Tuple[int, int, int]]:
         """
         Return an iterator that yields (kmer, start, end) numeric minimiser tuples.
@@ -157,7 +151,6 @@ class MinimiserGenerator:
             Iterator[Tuple[int, int, int]]: An iterator over minimiser tuples as the tuple (minimiser, start, end).
         """
         ...
-
     def to_acgt(self, mmer: int) -> str:
         """
         Initialise the KmerGenerator.
@@ -183,7 +176,6 @@ class OligoComputer:
             k (int): The size of the oligonucleotides to compute.
         """
         ...
-
     def vectorise_one(
         self, seq: str, norm: bool = True, mins: bool = True
     ) -> List[float]:
@@ -202,7 +194,6 @@ class OligoComputer:
             ValueError: If the sequence contains an invalid nucleotide.
         """
         ...
-
     def vectorise_batch(
         self, seqs: List[str], norm: bool = True, mins: bool = True
     ) -> List[List[float]]:
@@ -221,7 +212,6 @@ class OligoComputer:
             ValueError: If any sequence contains an invalid nucleotide.
         """
         ...
-
     def get_header(self, mins: bool = True) -> List[str]:
         """
         Generate the header for oligo nucleotide vector.

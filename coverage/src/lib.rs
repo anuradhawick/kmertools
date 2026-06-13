@@ -1,15 +1,30 @@
 use counter::CountComputer;
-use kmer::{kmer::KmerGenerator, Kmer};
+use kmer::{kmer::KmerGenerator, KmerU1024, KmerU2048, KmerU256, KmerU512, KmerWord};
 use ktio::seq::{SeqFormat, Sequences};
 use rayon::prelude::*;
 use std::{
     cmp::min,
     collections::HashMap,
+    fmt::Debug,
     fs::{self, File},
     io::{BufRead, BufReader, BufWriter, Write},
+    str::FromStr,
 };
 
 const NUMBER_SIZE: usize = 8;
+
+trait CoverageKmer: KmerWord + FromStr
+where
+    <Self as FromStr>::Err: Debug,
+{
+}
+
+impl<K> CoverageKmer for K
+where
+    K: KmerWord + FromStr,
+    <K as FromStr>::Err: Debug,
+{
+}
 
 pub struct CovComputer {
     in_path: String,
@@ -77,6 +92,21 @@ impl CovComputer {
     }
 
     pub fn compute_coverages(&self) {
+        match self.ksize {
+            1..=32 => self.compute_coverages_with::<u64>(),
+            33..=64 => self.compute_coverages_with::<u128>(),
+            65..=128 => self.compute_coverages_with::<KmerU256>(),
+            129..=256 => self.compute_coverages_with::<KmerU512>(),
+            257..=512 => self.compute_coverages_with::<KmerU1024>(),
+            513..=1024 => self.compute_coverages_with::<KmerU2048>(),
+            _ => panic!("k-mer size must be between 1 and 1024 bases"),
+        }
+    }
+
+    fn compute_coverages_with<K: CoverageKmer>(&self)
+    where
+        <K as FromStr>::Err: Debug,
+    {
         let kmer_path = format!("{}/kmers.counts", self.out_dir);
         let vec_path = format!("{}/kmers.vectors", self.out_dir);
         let file = fs::File::open(kmer_path).unwrap();
@@ -85,7 +115,7 @@ impl CovComputer {
 
         for line in buff.lines().map_while(Result::ok) {
             let mut parts = line.trim().split('\t');
-            let kmer: Kmer = parts.next().unwrap().parse().unwrap();
+            let kmer: K = parts.next().unwrap().parse().unwrap();
             let count: u32 = parts.next().unwrap().parse().unwrap();
             counts.insert(kmer, count);
         }
@@ -162,12 +192,12 @@ impl CovComputer {
         });
     }
 
-    fn vectorise_one(&self, seq: &[u8], counts: &HashMap<u64, u32>) -> Vec<f64> {
+    fn vectorise_one<K: KmerWord>(&self, seq: &[u8], counts: &HashMap<K, u32>) -> Vec<f64> {
         let mut vec = vec![0_f64; self.bin_count];
         let mut total = 0_f64;
 
-        for (fmer, rmer) in KmerGenerator::new(seq, self.ksize) {
-            let min_mer = u64::min(fmer, rmer);
+        for (fmer, rmer) in KmerGenerator::<K>::new(seq, self.ksize) {
+            let min_mer = min(fmer, rmer);
             let count = *counts.get(&min_mer).unwrap_or(&0);
             let kmer_bin = (count as f64 / self.bin_size as f64).floor() as usize;
             let vec_bin = min(kmer_bin, self.bin_count - 1);
@@ -238,6 +268,27 @@ mod tests {
         assert_eq!(
             fs::read("../test_data/expected_counts_unnorm.vectors").unwrap(),
             fs::read("../test_data/computed_coverage_unnorm/kmers.vectors").unwrap()
+        );
+    }
+
+    #[test]
+    fn coverage_supports_three_limb_kmers() {
+        create_directory("../test_data/computed_coverage_unnorm_wide")
+            .expect("Directory must be creatable");
+        let mut cov = CovComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/computed_coverage_unnorm_wide".to_owned(),
+            50,
+            2,
+            3,
+        );
+        cov.set_norm(false);
+        cov.build_table().unwrap();
+        cov.compute_coverages();
+
+        assert_eq!(
+            fs::read("../test_data/expected_counts_unnorm_wide.vectors").unwrap(),
+            fs::read("../test_data/computed_coverage_unnorm_wide/kmers.vectors").unwrap()
         );
     }
 }

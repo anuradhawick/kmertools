@@ -145,7 +145,7 @@ pub struct CoverageCommand {
     pub output: String,
 
     /// K size for the coverage histogram
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=31), default_value_t = 15)]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(1..=1024), default_value_t = 15)]
     pub k_size: u64,
 
     /// Output type to write
@@ -185,7 +185,7 @@ pub struct MinimiserCommand {
     pub output: String,
 
     /// Minimiser size
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=28), default_value_t = 10)]
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(7..=1024), default_value_t = 10)]
     pub m_size: u64,
 
     /// Window size
@@ -215,8 +215,8 @@ pub struct CounterCommand {
     #[arg(short, long)]
     pub output: String,
 
-    /// k size for counting
-    #[arg(short, long, value_parser = clap::value_parser!(u64).range(10..32))]
+    /// K-mer size for counting
+    #[arg(short, long, value_parser = clap::value_parser!(u64).range(1..=1024))]
     pub k_size: u64,
 
     /// Max memory in GB
@@ -328,11 +328,6 @@ pub fn cli(cli: Cli) {
                 eprintln!("Window size must be longer than minimiser size!");
                 return;
             }
-            if command.m_size >= 31 {
-                eprintln!("Minimisers longer than 30 bases not allowed!");
-                return;
-            }
-
             match command.preset {
                 MinFmtPreset::M2s => minimisers::bin_sequences(
                     command.w_size as usize,
@@ -364,5 +359,72 @@ pub fn cli(cli: Cli) {
             ctr.count();
             ctr.merge(true);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn parse_counter(ksize: u64) -> Result<Cli, clap::Error> {
+        Cli::try_parse_from([
+            "kmertools",
+            "ctr",
+            "--input",
+            "reads.fa",
+            "--output",
+            "counts",
+            "--k-size",
+            &ksize.to_string(),
+        ])
+    }
+
+    fn parse_coverage(ksize: u64) -> Result<Cli, clap::Error> {
+        Cli::try_parse_from([
+            "kmertools",
+            "cov",
+            "--input",
+            "reads.fa",
+            "--output",
+            "coverage",
+            "--k-size",
+            &ksize.to_string(),
+        ])
+    }
+
+    #[test]
+    fn counter_accepts_non_aligned_wide_kmer_size() {
+        let cli = parse_counter(99).unwrap();
+
+        let Commands::Ctr(command) = cli.command else {
+            panic!("expected counter command");
+        };
+        assert_eq!(command.k_size, 99);
+    }
+
+    #[test]
+    fn counter_accepts_maximum_kmer_size() {
+        assert!(parse_counter(1024).is_ok());
+    }
+
+    #[test]
+    fn counter_rejects_kmer_size_above_maximum() {
+        assert!(parse_counter(1025).is_err());
+    }
+
+    #[test]
+    fn coverage_accepts_non_aligned_wide_kmer_size() {
+        let cli = parse_coverage(99).unwrap();
+
+        let Commands::Cov(command) = cli.command else {
+            panic!("expected coverage command");
+        };
+        assert_eq!(command.k_size, 99);
+    }
+
+    #[test]
+    fn coverage_enforces_kmer_size_limit() {
+        assert!(parse_coverage(1024).is_ok());
+        assert!(parse_coverage(1025).is_err());
     }
 }
