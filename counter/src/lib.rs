@@ -1,5 +1,7 @@
 use indicatif::{ProgressBar, ProgressStyle};
-use kmer::{kmer::KmerGenerator, numeric_to_kmer, Kmer};
+use kmer::{
+    kmer::KmerGenerator, numeric_to_kmer, KmerU1024, KmerU2048, KmerU256, KmerU512, KmerWord,
+};
 use ktio::{
     fops::delete_file_if_exists,
     seq::{get_reader, SeqFormat, Sequences},
@@ -8,8 +10,11 @@ use rayon::prelude::*;
 use scc::HashMap as SccMap;
 use std::{
     cmp::{max, min},
+    fmt::{Debug, Display},
     fs,
     io::{BufRead, BufReader, BufWriter, Read, Write},
+    mem::size_of,
+    str::FromStr,
     sync::{
         atomic::{AtomicU64, Ordering},
         Arc, Mutex,
@@ -18,6 +23,19 @@ use std::{
 
 // only to make code more readable
 type SeqArc = Arc<Mutex<Sequences<BufReader<Box<dyn Read + Sync + Send>>>>>;
+
+trait CounterKmer: KmerWord + Display + FromStr
+where
+    <Self as FromStr>::Err: Debug,
+{
+}
+
+impl<K> CounterKmer for K
+where
+    K: KmerWord + Display + FromStr,
+    <K as FromStr>::Err: Debug,
+{
+}
 
 pub struct CountComputer {
     in_path: String,
@@ -67,7 +85,22 @@ impl CountComputer {
     }
 
     pub fn count(&mut self) {
-        self.init();
+        match self.ksize {
+            1..=32 => self.count_with::<u64>(),
+            33..=64 => self.count_with::<u128>(),
+            65..=128 => self.count_with::<KmerU256>(),
+            129..=256 => self.count_with::<KmerU512>(),
+            257..=512 => self.count_with::<KmerU1024>(),
+            513..=1024 => self.count_with::<KmerU2048>(),
+            _ => panic!("k-mer size must be between 1 and 1024 bases"),
+        }
+    }
+
+    fn count_with<K: CounterKmer>(&mut self)
+    where
+        <K as FromStr>::Err: Debug,
+    {
+        self.init_with::<K>();
         let pbar = ProgressBar::new(self.seq_count);
         pbar.set_style(
             ProgressStyle::with_template(
@@ -79,7 +112,7 @@ impl CountComputer {
         loop {
             // TODO have to fix below line being called even the next chunk does not exist
             pbar.set_message(format!("Processing chunk: {}", self.chunks + 1));
-            let records = self.count_chunk(&pbar);
+            let records = self.count_chunk::<K>(&pbar);
             if records > 0 {
                 self.chunks += 1;
             } else {
@@ -89,7 +122,10 @@ impl CountComputer {
         pbar.finish();
     }
 
-    fn count_chunk(&self, pbar: &ProgressBar) -> u64 {
+    fn count_chunk<K: CounterKmer>(&self, pbar: &ProgressBar) -> u64
+    where
+        <K as FromStr>::Err: Debug,
+    {
         let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()
@@ -97,7 +133,7 @@ impl CountComputer {
         let total_records = Arc::new(AtomicU64::new(0));
         // an estimate of worse case kmer count
         let total_kmers_so_far = Arc::new(AtomicU64::new(0));
-        let counts_table: Vec<SccMap<Kmer, u32>> = vec![SccMap::new(); self.n_parts as usize];
+        let counts_table: Vec<SccMap<K, u32>> = vec![SccMap::new(); self.n_parts as usize];
         let counts_table_arc = Arc::new(counts_table);
         // make pbar for all bases struct wide
 
@@ -113,7 +149,8 @@ impl CountComputer {
                     loop {
                         // when limit reached exit without further reads
                         if total_kmers_so_far_clone.load(Ordering::Relaxed)
-                            > (1_000_000_000_f64 * self.memory_ceil_gb / 8.0) as u64
+                            > (1_000_000_000_f64 * self.memory_ceil_gb / size_of::<K>() as f64)
+                                as u64
                         {
                             break;
                         }
@@ -121,11 +158,12 @@ impl CountComputer {
                         if let Some(record) = record {
                             pbar.inc(1);
                             total_records_clone.fetch_add(1, Ordering::Acquire);
-                            for (fmer, rmer) in KmerGenerator::new(&record.seq, self.ksize) {
+                            for (fmer, rmer) in KmerGenerator::<K>::new(&record.seq, self.ksize) {
                                 let min_mer = min(fmer, rmer);
+                                let part = (min_mer % K::from_u64(self.n_parts)).to_u64() as usize;
                                 unsafe {
                                     counts_table_arc_clone
-                                        .get_unchecked((min_mer % self.n_parts) as usize)
+                                        .get_unchecked(part)
                                         .entry_sync(min_mer)
                                         .and_modify(|v| *v += 1)
                                         .or_insert(1);
@@ -174,6 +212,21 @@ impl CountComputer {
     }
 
     pub fn merge(&self, delete: bool) {
+        match self.ksize {
+            1..=32 => self.merge_with::<u64>(delete),
+            33..=64 => self.merge_with::<u128>(delete),
+            65..=128 => self.merge_with::<KmerU256>(delete),
+            129..=256 => self.merge_with::<KmerU512>(delete),
+            257..=512 => self.merge_with::<KmerU1024>(delete),
+            513..=1024 => self.merge_with::<KmerU2048>(delete),
+            _ => panic!("k-mer size must be between 1 and 1024 bases"),
+        }
+    }
+
+    fn merge_with<K: CounterKmer>(&self, delete: bool)
+    where
+        <K as FromStr>::Err: Debug,
+    {
         let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()
@@ -191,7 +244,7 @@ impl CountComputer {
 
         for part in 0..self.n_parts {
             let completed = Arc::new(AtomicU64::new(0));
-            let map: SccMap<Kmer, u32> = SccMap::new();
+            let map: SccMap<K, u32> = SccMap::new();
             let map_arc = Arc::new(map);
             pbar.set_message(format!("Merging partition: {}", part + 1));
 
@@ -208,7 +261,7 @@ impl CountComputer {
                         let buff = BufReader::new(file);
                         for line in buff.lines().map_while(Result::ok) {
                             let mut parts = line.trim().split('\t');
-                            let kmer: Kmer = parts.next().unwrap().parse().unwrap();
+                            let kmer: K = parts.next().unwrap().parse().unwrap();
                             let count: u32 = parts.next().unwrap().parse().unwrap();
                             *map_arc_clone.entry_sync(kmer).or_insert(0) += count;
                         }
@@ -238,16 +291,15 @@ impl CountComputer {
         pbar.finish();
     }
 
-    pub fn init(&mut self) {
+    fn init_with<K: KmerWord>(&mut self) {
         let reader = get_reader(&self.in_path).unwrap();
         let format = SeqFormat::get(&self.in_path).unwrap();
         let stats = Sequences::seq_stats(format, reader);
         let data_size_gb = stats.total_length as f64 / (1 << 30) as f64;
-        // assuming 8 bytes per kmer
         // at least this should be the num threads for fastest possible merging
         let n_parts = max(
             if self.debug { 1 } else { self.threads as u64 },
-            (8_f64 * data_size_gb / (2_f64 * self.memory_ceil_gb)).ceil() as u64,
+            (size_of::<K>() as f64 * data_size_gb / (2_f64 * self.memory_ceil_gb)).ceil() as u64,
         );
         self.n_parts = n_parts;
         self.seq_count = stats.seq_count as u64;
@@ -310,6 +362,25 @@ mod tests {
         ctr.merge(false);
         let exp = load_lines_sorted("../test_data/expected_counts_acgt_test.counts");
         let res = load_lines_sorted("../test_data/computed_counts_acgt_test/kmers.counts");
+        println!("Result  : {:?}", res);
+        println!("Expected: {:?}", exp);
+        assert_eq!(exp, res);
+    }
+
+    #[test]
+    fn count_and_merge_three_limb_kmers() {
+        create_directory("../test_data/computed_counts_wide").expect("Directory must be creatable");
+        let mut ctr = CountComputer::new(
+            PATH_FQ.to_owned(),
+            "../test_data/computed_counts_wide".to_owned(),
+            70,
+        );
+        ctr.debug = true;
+        ctr.count();
+        assert_eq!(ctr.n_parts, 1);
+        assert_eq!(ctr.chunks, 1);
+        let exp = load_lines_sorted("../test_data/expected_counts_wide.part_0_chunk_0");
+        let res = load_lines_sorted("../test_data/computed_counts_wide/temp_kmers.part_0_chunk_0");
         println!("Result  : {:?}", res);
         println!("Expected: {:?}", exp);
         assert_eq!(exp, res);
