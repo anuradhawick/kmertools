@@ -8,12 +8,12 @@ use kmer::{
 use pyo3::{exceptions::PyValueError, prelude::*};
 
 enum MinimiserGeneratorInner {
-    U64(RsMinimiserGenerator<'static, u64>),
-    U128(RsMinimiserGenerator<'static, u128>),
-    U256(RsMinimiserGenerator<'static, KmerU256>),
-    U512(RsMinimiserGenerator<'static, KmerU512>),
-    U1024(RsMinimiserGenerator<'static, KmerU1024>),
-    U2048(RsMinimiserGenerator<'static, KmerU2048>),
+    U64(Box<RsMinimiserGenerator<'static, u64>>),
+    U128(Box<RsMinimiserGenerator<'static, u128>>),
+    U256(Box<RsMinimiserGenerator<'static, KmerU256>>),
+    U512(Box<RsMinimiserGenerator<'static, KmerU512>>),
+    U1024(Box<RsMinimiserGenerator<'static, KmerU1024>>),
+    U2048(Box<RsMinimiserGenerator<'static, KmerU2048>>),
 }
 
 impl MinimiserGeneratorInner {
@@ -25,12 +25,24 @@ impl MinimiserGeneratorInner {
         }
 
         match msize {
-            1..=32 => Ok(Self::U64(RsMinimiserGenerator::new(seq, wsize, msize))),
-            33..=64 => Ok(Self::U128(RsMinimiserGenerator::new(seq, wsize, msize))),
-            65..=128 => Ok(Self::U256(RsMinimiserGenerator::new(seq, wsize, msize))),
-            129..=256 => Ok(Self::U512(RsMinimiserGenerator::new(seq, wsize, msize))),
-            257..=512 => Ok(Self::U1024(RsMinimiserGenerator::new(seq, wsize, msize))),
-            513..=1024 => Ok(Self::U2048(RsMinimiserGenerator::new(seq, wsize, msize))),
+            1..=32 => Ok(Self::U64(Box::new(RsMinimiserGenerator::new(
+                seq, wsize, msize,
+            )))),
+            33..=64 => Ok(Self::U128(Box::new(RsMinimiserGenerator::new(
+                seq, wsize, msize,
+            )))),
+            65..=128 => Ok(Self::U256(Box::new(RsMinimiserGenerator::new(
+                seq, wsize, msize,
+            )))),
+            129..=256 => Ok(Self::U512(Box::new(RsMinimiserGenerator::new(
+                seq, wsize, msize,
+            )))),
+            257..=512 => Ok(Self::U1024(Box::new(RsMinimiserGenerator::new(
+                seq, wsize, msize,
+            )))),
+            513..=1024 => Ok(Self::U2048(Box::new(RsMinimiserGenerator::new(
+                seq, wsize, msize,
+            )))),
             _ => Err(PyValueError::new_err(
                 "minimiser size must be between 1 and 1024 bases",
             )),

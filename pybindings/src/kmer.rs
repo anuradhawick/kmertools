@@ -2,68 +2,101 @@ use kmer::{
     kmer::KmerGenerator as RsKmerGenerator, kmer_to_numeric, numeric_to_kmer, KmerU1024, KmerU2048,
     KmerU256, KmerU512, KmerWord,
 };
-use pyo3::{exceptions::PyValueError, prelude::*, types::PyAnyMethods};
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Display},
-    mem::transmute,
-    str::FromStr,
-    sync::Arc,
+use pyo3::{
+    exceptions::PyValueError,
+    prelude::*,
+    types::{PyAnyMethods, PyBytes, PyBytesMethods, PyInt},
+    IntoPyObjectExt,
 };
+use std::{collections::HashMap, mem::transmute, sync::Arc};
 
-pub(crate) trait PyKmerWord: KmerWord + Display + FromStr
-where
-    <Self as FromStr>::Err: Debug,
-{
+pub(crate) trait PyKmerWord: KmerWord {
+    fn into_py_int(self, py: Python<'_>) -> PyResult<Py<PyAny>>;
+    fn from_py_int(value: &Bound<'_, PyAny>) -> PyResult<Self>;
 }
 
-impl<K> PyKmerWord for K
-where
-    K: KmerWord + Display + FromStr,
-    <K as FromStr>::Err: Debug,
-{
+macro_rules! impl_native_py_kmer_word {
+    ($word:ty) => {
+        impl PyKmerWord for $word {
+            #[inline]
+            fn into_py_int(self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+                self.into_py_any(py)
+            }
+
+            #[inline]
+            fn from_py_int(value: &Bound<'_, PyAny>) -> PyResult<Self> {
+                value.extract()
+            }
+        }
+    };
 }
 
-// Convert any KmerWord to Python's arbitrary-precision int through exact decimal text.
-pub(crate) fn word_to_py<K: Display>(py: Python<'_>, value: K) -> PyResult<Py<PyAny>> {
-    py.import("builtins")?
-        .getattr("int")?
-        .call1((value.to_string(),))
-        .map(Bound::unbind)
+impl_native_py_kmer_word!(u64);
+impl_native_py_kmer_word!(u128);
+
+macro_rules! impl_wide_py_kmer_word {
+    ($word:ty, $bytes:expr) => {
+        impl PyKmerWord for $word {
+            fn into_py_int(self, py: Python<'_>) -> PyResult<Py<PyAny>> {
+                let bytes = self
+                    .as_limbs()
+                    .iter()
+                    .flat_map(|limb| limb.to_le_bytes())
+                    .collect::<Vec<_>>();
+                let bytes = PyBytes::new(py, &bytes);
+                py.get_type::<PyInt>()
+                    .call_method1("from_bytes", (bytes, "little"))
+                    .map(Bound::unbind)
+            }
+
+            fn from_py_int(value: &Bound<'_, PyAny>) -> PyResult<Self> {
+                let bytes = value
+                    .call_method1("to_bytes", ($bytes, "little"))?
+                    .cast_into::<PyBytes>()?;
+                Self::try_from_le_slice(bytes.as_bytes()).ok_or_else(|| {
+                    PyValueError::new_err(format!(
+                        "invalid non-negative k-mer integer for {} bits",
+                        Self::BITS
+                    ))
+                })
+            }
+        }
+    };
 }
 
-// Convert a Python int to the selected fixed-width KmerWord through exact decimal text.
-pub(crate) fn word_from_py<K: PyKmerWord>(value: &Bound<'_, PyAny>) -> PyResult<K>
-where
-    <K as FromStr>::Err: Debug,
-{
-    let value_string = value.str()?;
-    value_string.to_str()?.parse().map_err(|error| {
-        PyValueError::new_err(format!(
-            "invalid non-negative k-mer integer for {} bits: {error:?}",
-            K::BITS
-        ))
-    })
+impl_wide_py_kmer_word!(KmerU256, 32);
+impl_wide_py_kmer_word!(KmerU512, 64);
+impl_wide_py_kmer_word!(KmerU1024, 128);
+impl_wide_py_kmer_word!(KmerU2048, 256);
+
+// Use direct native conversion for u64/u128 and packed bytes for wider words.
+pub(crate) fn word_to_py<K: PyKmerWord>(py: Python<'_>, value: K) -> PyResult<Py<PyAny>> {
+    value.into_py_int(py)
+}
+
+// Extract native words directly and wider words from packed little-endian bytes.
+pub(crate) fn word_from_py<K: PyKmerWord>(value: &Bound<'_, PyAny>) -> PyResult<K> {
+    K::from_py_int(value)
 }
 
 enum KmerGeneratorInner {
-    U64(RsKmerGenerator<'static, u64>),
-    U128(RsKmerGenerator<'static, u128>),
-    U256(RsKmerGenerator<'static, KmerU256>),
-    U512(RsKmerGenerator<'static, KmerU512>),
-    U1024(RsKmerGenerator<'static, KmerU1024>),
-    U2048(RsKmerGenerator<'static, KmerU2048>),
+    U64(Box<RsKmerGenerator<'static, u64>>),
+    U128(Box<RsKmerGenerator<'static, u128>>),
+    U256(Box<RsKmerGenerator<'static, KmerU256>>),
+    U512(Box<RsKmerGenerator<'static, KmerU512>>),
+    U1024(Box<RsKmerGenerator<'static, KmerU1024>>),
+    U2048(Box<RsKmerGenerator<'static, KmerU2048>>),
 }
 
 impl KmerGeneratorInner {
     fn new(seq: &'static [u8], ksize: usize) -> PyResult<Self> {
         match ksize {
-            1..=32 => Ok(Self::U64(RsKmerGenerator::new(seq, ksize))),
-            33..=64 => Ok(Self::U128(RsKmerGenerator::new(seq, ksize))),
-            65..=128 => Ok(Self::U256(RsKmerGenerator::new(seq, ksize))),
-            129..=256 => Ok(Self::U512(RsKmerGenerator::new(seq, ksize))),
-            257..=512 => Ok(Self::U1024(RsKmerGenerator::new(seq, ksize))),
-            513..=1024 => Ok(Self::U2048(RsKmerGenerator::new(seq, ksize))),
+            1..=32 => Ok(Self::U64(Box::new(RsKmerGenerator::new(seq, ksize)))),
+            33..=64 => Ok(Self::U128(Box::new(RsKmerGenerator::new(seq, ksize)))),
+            65..=128 => Ok(Self::U256(Box::new(RsKmerGenerator::new(seq, ksize)))),
+            129..=256 => Ok(Self::U512(Box::new(RsKmerGenerator::new(seq, ksize)))),
+            257..=512 => Ok(Self::U1024(Box::new(RsKmerGenerator::new(seq, ksize)))),
+            513..=1024 => Ok(Self::U2048(Box::new(RsKmerGenerator::new(seq, ksize)))),
             _ => Err(PyValueError::new_err(
                 "k-mer size must be between 1 and 1024 bases",
             )),
@@ -143,10 +176,7 @@ impl KmerGenerator {
     }
 }
 
-fn to_acgt_with<K: PyKmerWord>(kmer: &Bound<'_, PyAny>, ksize: usize) -> PyResult<String>
-where
-    <K as FromStr>::Err: Debug,
-{
+fn to_acgt_with<K: PyKmerWord>(kmer: &Bound<'_, PyAny>, ksize: usize) -> PyResult<String> {
     Ok(numeric_to_kmer(word_from_py::<K>(kmer)?, ksize))
 }
 
@@ -169,10 +199,7 @@ pub fn to_acgt(kmer: &Bound<'_, PyAny>, ksize: usize) -> PyResult<String> {
     }
 }
 
-fn to_numeric_with<K: PyKmerWord>(py: Python<'_>, kmer: &str) -> PyResult<(Py<PyAny>, Py<PyAny>)>
-where
-    <K as FromStr>::Err: Debug,
-{
+fn to_numeric_with<K: PyKmerWord>(py: Python<'_>, kmer: &str) -> PyResult<(Py<PyAny>, Py<PyAny>)> {
     let (forward, reverse) = kmer_to_numeric::<K>(kmer);
     Ok((word_to_py(py, forward)?, word_to_py(py, reverse)?))
 }
