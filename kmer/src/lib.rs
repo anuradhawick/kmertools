@@ -3,7 +3,6 @@ pub mod kmer_minimisers;
 pub mod kmer_word;
 pub mod minimiser;
 pub use kmer_word::{KmerU1024, KmerU128, KmerU2048, KmerU256, KmerU512, KmerWord};
-pub type Kmer = u64;
 
 // https://github.com/lh3/minimap2/blob/0cc3cdca27f050fb80a19c90d25ecc6ab0b0907b/sketch.c#L9C1-L26C3
 const SEQ_NT4_TABLE: [u8; 256] = [
