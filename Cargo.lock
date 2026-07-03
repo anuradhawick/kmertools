@@ -90,9 +90,9 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "bio"
-version = "4.0.0"
+version = "4.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f190fb013f81cc8abf5e5a663e1e96bdb87a7b3dfe908900860fe1f6ae0ecd0"
+checksum = "7ec70754e9fc444b545c0f4e3ac5547885dd83f297d642be4a260672aa59610b"
 dependencies = [
  "approx",
  "bio-types",
@@ -245,7 +245,7 @@ checksum = "b05b61dc5112cbb17e4b6cd61790d9845d13888356391624cbe7e41efeac1e75"
 
 [[package]]
 name = "composition"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "kmer",
  "ktio",
@@ -255,7 +255,7 @@ dependencies = [
 
 [[package]]
 name = "conda"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "clap",
  "pybindings",
@@ -265,20 +265,19 @@ dependencies = [
 
 [[package]]
 name = "console"
-version = "0.16.1"
+version = "0.16.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b430743a6eb14e9764d4260d4c0d8123087d504eeb9c48f2b2a5e810dd369df4"
+checksum = "4fe5f465a4f6fee88fad41b85d990f84c835335e85b5d9e6e63e0d06d28cba7c"
 dependencies = [
  "encode_unicode",
  "libc",
- "once_cell",
  "unicode-width",
  "windows-sys 0.61.0",
 ]
 
 [[package]]
 name = "counter"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "indicatif",
  "kmer",
@@ -289,7 +288,7 @@ dependencies = [
 
 [[package]]
 name = "coverage"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "counter",
  "kmer",
@@ -519,9 +518,9 @@ dependencies = [
 
 [[package]]
 name = "indicatif"
-version = "0.18.4"
+version = "0.18.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25470f23803092da7d239834776d653104d551bc4d7eacaf31e6837854b8e9eb"
+checksum = "9433806cd6b4ec1aba79c021c7e4c58fb4c3b9977c085062e611ac929998fb0c"
 dependencies = [
  "console",
  "portable-atomic",
@@ -572,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "kmer"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "indicatif",
  "ruint",
@@ -580,7 +579,7 @@ dependencies = [
 
 [[package]]
 name = "kmertools"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "clap",
  "composition",
@@ -592,7 +591,7 @@ dependencies = [
 
 [[package]]
 name = "ktio"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "bio",
  "flate2",
@@ -641,9 +640,9 @@ checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 
 [[package]]
 name = "memmap2"
-version = "0.9.10"
+version = "0.9.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "714098028fe011992e1c3962653c96b2d578c4b4bce9036e15ff220319b1e0e3"
+checksum = "d1219ed1b7f229ee7104d281dd01d6802fe28bb6e95d292942c4daacdeb798c0"
 dependencies = [
  "libc",
 ]
@@ -660,7 +659,7 @@ dependencies = [
 
 [[package]]
 name = "misc"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "indicatif",
  "kmer",
@@ -809,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "pip"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "clap",
  "kmertools",
@@ -862,7 +861,7 @@ dependencies = [
 
 [[package]]
 name = "pybindings"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "clap",
  "composition",
@@ -1094,9 +1093,9 @@ dependencies = [
 
 [[package]]
 name = "scc"
-version = "3.7.3"
+version = "3.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36b032630cfe931bea2c3316541f04ef0e20357943fbfe0b6ed01c00f87462d8"
+checksum = "5581cd5dd2cb79cbe9d8137071d67f62f0db926e83a07b4d14561c5b7d423776"
 dependencies = [
  "saa",
  "sdd",

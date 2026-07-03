@@ -1,5 +1,5 @@
 [workspace]
-package.version = "0.1.0"
+package.version = "1.0.0"
 package.edition = "2021"
 package.authors = [
     "Anuradha Wickramarachchi <anuradhawick@gmail.com>",
@@ -25,11 +25,11 @@ resolver = "2"
 
 [workspace.dependencies]
 rayon = "1.12.0"
-memmap2 = "0.9.10"
+memmap2 = "0.9.11"
 pyo3 = { version = "0.29.0" }
 clap = { version = "4.6.1" }
-scc = "3.7.3"
-indicatif = "0.18.4"
-bio = "4.0.0"
+scc = "3.8.3"
+indicatif = "0.18.6"
+bio = "4.0.1"
 flate2 = "1.1.9"
 ruint = { version = "1.18.0", default-features = false }
