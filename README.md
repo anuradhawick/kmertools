@@ -28,8 +28,12 @@ $$ | \$$\ $$ | $$ | $$ |\$$$$$$$\ $$ |         $$ |   \$$$$$$  |\$$$$$$  |$$ |$$
 `kmertools` is a k-mer based feature extraction tool designed to support metagenomics and other bioinformatics analytics. This tool leverages k-mer analysis to vectorize DNA sequences, facilitating the use of these vectors in various AI/ML applications.
 
 <div align="center">
-<a href="https://www.star-history.com/#anuradhawick/kmertools&Date">
-  <img width="600px" src="https://api.star-history.com/svg?repos=anuradhawick/kmertools&type=Date" alt="Star History Chart">
+<a href="https://www.star-history.com/?repos=anuradhawick%2Fkmertools&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=anuradhawick/kmertools&type=date&theme=dark&legend=top-left&sealed_token=cVixgTiN3iFnlMuFN4jf0vJNX31t89EpEoB3sER1oE457bMK8RlBUTx_JEFs3btxecDi5A3fwV5j-MNZGtCrfc6Cb7EIa12kCcFuORn8PnwlVjEmRuREV-sxFodxKgL1_Lplbex_QpB8Uxxocind2cueE6aXBqPeZgzukWkrGYw4FD2FQIuO9cUe30jE" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=anuradhawick/kmertools&type=date&legend=top-left&sealed_token=cVixgTiN3iFnlMuFN4jf0vJNX31t89EpEoB3sER1oE457bMK8RlBUTx_JEFs3btxecDi5A3fwV5j-MNZGtCrfc6Cb7EIa12kCcFuORn8PnwlVjEmRuREV-sxFodxKgL1_Lplbex_QpB8Uxxocind2cueE6aXBqPeZgzukWkrGYw4FD2FQIuO9cUe30jE" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=anuradhawick/kmertools&type=date&legend=top-left&sealed_token=cVixgTiN3iFnlMuFN4jf0vJNX31t89EpEoB3sER1oE457bMK8RlBUTx_JEFs3btxecDi5A3fwV5j-MNZGtCrfc6Cb7EIa12kCcFuORn8PnwlVjEmRuREV-sxFodxKgL1_Lplbex_QpB8Uxxocind2cueE6aXBqPeZgzukWkrGYw4FD2FQIuO9cUe30jE" />
+ </picture>
 </a>
 </div>
 
