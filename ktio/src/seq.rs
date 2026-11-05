@@ -1,18 +1,28 @@
-use bio::io::fasta::{Reader as FastaReader, Records as FastaRecords};
-use bio::io::fastq::{Reader as FastqReader, Records as FastqRecords};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read};
 
-// Record set entries of type R, which implement BufRead trait (stdin/file)
-pub enum RecordSet<R: BufRead> {
-    Fasta(FastaRecords<BufReader<R>>),
-    Fastq(FastqRecords<BufReader<R>>),
+use crate::io::FastxReader;
+
+#[derive(PartialEq, Debug)]
+pub struct Sequence {
+    pub n: usize, // 0 based index of the sequence
+    pub id: String,
+    pub desc: String,
+    pub seq: String,
+    pub qual: String,
 }
 
-pub struct Sequence {
-    pub n: usize,
-    pub id: String,
-    pub seq: Vec<u8>,
+impl Sequence {
+    /// Create a new sequence record
+    pub fn new(id: String, desc: String, seq: String, qual: String) -> Self {
+        Self {
+            n: 0,
+            id,
+            desc,
+            seq,
+            qual,
+        }
+    }
 }
 
 pub struct SeqStats {
@@ -43,48 +53,27 @@ impl SeqFormat {
 
 pub struct Sequences<R: BufRead> {
     pub current_record: usize,
-    pub records: RecordSet<R>,
+    pub records: FastxReader<R>,
 }
 
 impl<R: BufRead> Sequences<R> {
-    pub fn new(format: SeqFormat, reader: R) -> Result<Self, String> {
-        match format {
-            SeqFormat::Fastq => {
-                let fastq_reader = FastqReader::new(reader);
-                Ok(Sequences {
-                    current_record: 0,
-                    records: RecordSet::Fastq(fastq_reader.records()),
-                })
-            }
-            SeqFormat::Fasta => {
-                let fasta_reader = FastaReader::new(reader);
-                Ok(Sequences {
-                    current_record: 0,
-                    records: RecordSet::Fasta(fasta_reader.records()),
-                })
-            }
+    pub fn new(format: SeqFormat, reader: R) -> Self {
+        Self {
+            current_record: 0,
+            records: FastxReader::new(format, reader),
         }
     }
 
     pub fn seq_stats(format: SeqFormat, reader: R) -> SeqStats {
         let mut total_length = 0_usize;
         let mut seq_count = 0_usize;
+        let mut records = FastxReader::new(format, reader);
 
-        match format {
-            SeqFormat::Fastq => {
-                let fastq_reader = FastqReader::new(reader);
-                for record in fastq_reader.records() {
-                    total_length += record.unwrap().seq().len();
-                    seq_count += 1;
-                }
-            }
-            SeqFormat::Fasta => {
-                let fasta_reader = FastaReader::new(reader);
-                for record in fasta_reader.records() {
-                    total_length += record.unwrap().seq().len();
-                    seq_count += 1;
-                }
-            }
+        while let Ok(record) = records.read_next()
+            && let Some(record) = record
+        {
+            total_length += record.seq.len();
+            seq_count += 1;
         }
 
         SeqStats {
@@ -92,66 +81,38 @@ impl<R: BufRead> Sequences<R> {
             total_length,
         }
     }
+
+    pub fn read_next(&mut self) -> io::Result<Option<Sequence>> {
+        let mut res = self.records.read_next();
+        if let Ok(Some(seq)) = res.as_mut() {
+            seq.n = self.current_record;
+        }
+        self.current_record += 1;
+        res
+    }
 }
 
 impl<R: BufRead> Iterator for Sequences<R> {
     type Item = Sequence;
 
     fn next(&mut self) -> Option<Self::Item> {
-        // records do not have a common trait to get id and seq, we can create one
-        // but this looks simpler for the time being
-        match self.records {
-            RecordSet::Fastq(ref mut records) => {
-                let next_record = records.next();
-                if let Some(record) = next_record {
-                    let record = record.unwrap();
-                    self.current_record += 1;
-                    return Some(Sequence {
-                        n: self.current_record - 1,
-                        id: record.id().to_string(),
-                        seq: record.seq().to_vec(),
-                    });
-                }
-                None
-            }
-            RecordSet::Fasta(ref mut records) => {
-                let next_record = records.next();
-                if let Some(record) = next_record {
-                    let record = record.unwrap();
-                    self.current_record += 1;
-                    return Some(Sequence {
-                        n: self.current_record - 1,
-                        id: record.id().to_string(),
-                        seq: record.seq().to_vec(),
-                    });
-                }
-                None
-            }
-        }
-    }
-
-    fn count(self) -> usize
-    where
-        Self: Sized,
-    {
-        unimplemented!("Count cannot be performed without always having a rewindable input stream, stdin is not!");
+        self.read_next().expect("Error reading sequence")
     }
 }
 
 pub fn get_reader(path: &str) -> Result<BufReader<Box<dyn Read + Sync + Send>>, String> {
     if path == "-" {
         let stdin = io::stdin();
-        Ok(BufReader::new(Box::new(stdin)))
-    } else {
-        let is_zip = path.ends_with(".gz");
-        let file = File::open(path).map_err(|_| format!("Unable to open: {}", path))?;
-        if is_zip {
-            let decoder = flate2::read::GzDecoder::new(file);
-            Ok(BufReader::new(Box::new(decoder)))
-        } else {
-            Ok(BufReader::new(Box::new(file)))
-        }
+        return Ok(BufReader::new(Box::new(stdin)));
     }
+    let file = File::open(path).map_err(|e| format!("Unable to open {}: {}", path, e))?;
+    let input: Box<dyn Read + Sync + Send> = if path.ends_with(".gz") {
+        // Gzip members include BGZF blocks; decode all members, not just the first.
+        Box::new(flate2::read::MultiGzDecoder::new(file))
+    } else {
+        Box::new(file)
+    };
+    Ok(BufReader::with_capacity(64 * 1024, input))
 }
 
 #[cfg(test)]
@@ -183,17 +144,17 @@ mod tests {
     #[test]
     fn load_fq_file_test() {
         let reader = get_reader(PATH_FQ).unwrap();
-        let mut seqs = Sequences::new(SeqFormat::Fastq, reader).unwrap();
+        let mut seqs = Sequences::new(SeqFormat::Fastq, reader);
         let record_1 = seqs.next().unwrap();
         assert_eq!("Read_1", record_1.id);
         assert_eq!(
-            b"GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA".to_vec(),
+            "GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA",
             record_1.seq
         );
         let record_2 = seqs.next().unwrap();
         assert_eq!("Read_2", record_2.id);
         assert_eq!(
-            b"GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT".to_vec(),
+            "GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT",
             record_2.seq
         );
         let finish = seqs.next();
@@ -203,17 +164,17 @@ mod tests {
     #[test]
     fn load_fa_file_test() {
         let reader = get_reader(PATH_FA).unwrap();
-        let mut seqs = Sequences::new(SeqFormat::Fasta, reader).unwrap();
+        let mut seqs = Sequences::new(SeqFormat::Fasta, reader);
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);
         assert_eq!(
-            b"GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA".to_vec(),
+            "GGGTGATGGCCGCTGCCGATGGCGTCAAATCCCACCAAGTTACCCTTAACAACTTAAGGGTTTTCAAATAGA",
             record_1.seq
         );
         let record_2 = seqs.next().unwrap();
         assert_eq!("Record_2", record_2.id);
         assert_eq!(
-            b"GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT".to_vec(),
+            "GTTCAGGGATACGACGTTTGTATTTTAAGAATCTGAAGCAGAAGTCGATGATAATACGCGTCGTTTTATCAT",
             record_2.seq
         );
         let finish = seqs.next();
@@ -224,10 +185,10 @@ mod tests {
     fn load_fa_stdin_test() {
         let input = ">Record_1\nACGTACGTACGT";
         let reader = BufReader::new(input.as_bytes());
-        let mut seqs = Sequences::new(SeqFormat::Fasta, reader).unwrap();
+        let mut seqs = Sequences::new(SeqFormat::Fasta, reader);
         let record_1 = seqs.next().unwrap();
         assert_eq!("Record_1", record_1.id);
-        assert_eq!(b"ACGTACGTACGT".to_vec(), record_1.seq);
+        assert_eq!("ACGTACGTACGT", record_1.seq);
         let finish = seqs.next();
         assert!(finish.is_none());
     }

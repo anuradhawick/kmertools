@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn two_limb_kmers_generated_test() {
-        use crate::{kmer_to_numeric, KmerU128};
+        use crate::{KmerU128, kmer_to_numeric};
 
         let sequence = "ACGT".repeat(16);
         let expected = kmer_to_numeric::<KmerU128>(&sequence);
@@ -205,7 +205,7 @@ mod tests {
 
     #[test]
     fn three_limb_kmers_generated_test() {
-        use crate::{kmer_to_numeric, KmerU256};
+        use crate::{KmerU256, kmer_to_numeric};
 
         let sequence = "ACGT".repeat(24);
         let expected = kmer_to_numeric::<KmerU256>(&sequence);

@@ -1,6 +1,6 @@
 use pybindings::{
     cgr::CgrComputer,
-    kmer::{register_utils_module, KmerGenerator},
+    kmer::{KmerGenerator, register_utils_module},
     min::MinimiserGenerator,
     oligo::OligoComputer,
 };

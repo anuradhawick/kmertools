@@ -1,10 +1,10 @@
 use indicatif::{ProgressBar, ProgressStyle};
 use kmer::{
-    kmer::KmerGenerator, numeric_to_kmer, KmerU1024, KmerU2048, KmerU256, KmerU512, KmerWord,
+    KmerU256, KmerU512, KmerU1024, KmerU2048, KmerWord, kmer::KmerGenerator, numeric_to_kmer,
 };
 use ktio::{
     fops::delete_file_if_exists,
-    seq::{get_reader, SeqFormat, Sequences},
+    seq::{SeqFormat, Sequences, get_reader},
 };
 use rayon::prelude::*;
 use scc::HashMap as SccMap;
@@ -16,8 +16,8 @@ use std::{
     mem::size_of,
     str::FromStr,
     sync::{
-        atomic::{AtomicU64, Ordering},
         Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
     },
 };
 
@@ -55,7 +55,7 @@ impl CountComputer {
     pub fn new(in_path: String, out_dir: String, ksize: usize) -> Self {
         let format = SeqFormat::get(&in_path).unwrap();
         let reader = ktio::seq::get_reader(&in_path).unwrap();
-        let records = Sequences::new(format, reader).unwrap();
+        let records = Sequences::new(format, reader);
 
         Self {
             in_path,
@@ -158,7 +158,9 @@ impl CountComputer {
                         if let Some(record) = record {
                             pbar.inc(1);
                             total_records_clone.fetch_add(1, Ordering::Acquire);
-                            for (fmer, rmer) in KmerGenerator::<K>::new(&record.seq, self.ksize) {
+                            for (fmer, rmer) in
+                                KmerGenerator::<K>::new(record.seq.as_bytes(), self.ksize)
+                            {
                                 let min_mer = min(fmer, rmer);
                                 let part = (min_mer % K::from_u64(self.n_parts)).to_u64() as usize;
                                 unsafe {

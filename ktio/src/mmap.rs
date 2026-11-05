@@ -25,7 +25,7 @@ impl<'a, T> MMWriter<'a, T> {
     where
         T: Copy,
     {
-        ptr::copy_nonoverlapping(data.as_ptr(), self.slice[pos].get(), data.len());
+        unsafe { ptr::copy_nonoverlapping(data.as_ptr(), self.slice[pos].get(), data.len()) };
     }
 }
 

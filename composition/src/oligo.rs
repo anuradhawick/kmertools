@@ -102,7 +102,7 @@ impl OligoComputer {
         } else {
             SeqFormat::Fastq
         };
-        let records = Sequences::new(format, reader).unwrap();
+        let records = Sequences::new(format, reader);
         let file = File::create(&self.out_path)
             .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
         let mut out_buffer = BufWriter::new(file);
@@ -126,7 +126,7 @@ impl OligoComputer {
                     let result = buffer
                         .par_iter()
                         .map(|seq| {
-                            let kvec = self.vectorise_one(&seq.seq);
+                            let kvec = self.vectorise_one(seq.seq.as_bytes());
                             let kvec_str: Vec<String> = kvec
                                 .iter()
                                 .map(|val| {
@@ -184,7 +184,7 @@ impl OligoComputer {
         // get reader
         let format = SeqFormat::get(&self.in_path).unwrap();
         let reader = ktio::seq::get_reader(&self.in_path).unwrap();
-        let records = Sequences::new(format, reader).unwrap();
+        let records = Sequences::new(format, reader);
         let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
             .num_threads(self.threads)
             .build()
@@ -205,7 +205,7 @@ impl OligoComputer {
                     loop {
                         let record = { records_arc_clone.lock().unwrap().next() };
                         if let Some(record) = record {
-                            let kvec = self.vectorise_one(&record.seq);
+                            let kvec = self.vectorise_one(record.seq.as_bytes());
                             // optimise this with pre-sized string
                             let kvec_str: Vec<String> = kvec
                                 .iter()

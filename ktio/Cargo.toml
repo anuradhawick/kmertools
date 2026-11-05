@@ -6,7 +6,6 @@ authors.workspace = true
 description.workspace = true
 
 [dependencies]
-bio = { workspace = true }
 flate2 = { workspace = true }
 memmap2 = { workspace = true }
 

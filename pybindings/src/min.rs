@@ -2,8 +2,8 @@ use std::{mem::transmute, sync::Arc};
 
 use crate::kmer::{word_from_py, word_to_py};
 use kmer::{
-    minimiser::MinimiserGenerator as RsMinimiserGenerator, numeric_to_kmer, KmerU1024, KmerU2048,
-    KmerU256, KmerU512,
+    KmerU256, KmerU512, KmerU1024, KmerU2048,
+    minimiser::MinimiserGenerator as RsMinimiserGenerator, numeric_to_kmer,
 };
 use pyo3::{exceptions::PyValueError, prelude::*};
 

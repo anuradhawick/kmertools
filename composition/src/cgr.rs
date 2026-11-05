@@ -74,7 +74,7 @@ impl CgrComputer {
         } else {
             SeqFormat::Fastq
         };
-        let records = Sequences::new(format, reader).unwrap();
+        let records = Sequences::new(format, reader);
         let file = File::create(&self.out_path)
             .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
         let mut out_buffer = BufWriter::new(file);
@@ -93,7 +93,7 @@ impl CgrComputer {
                     let result = buffer
                         .par_iter()
                         .map(|seq| {
-                            let kvec = self.vectorise_one(&seq.seq).unwrap();
+                            let kvec = self.vectorise_one(seq.seq.as_bytes()).unwrap();
                             let kvec_str: Vec<String> = kvec
                                 .iter()
                                 .map(|val| format!("({},{})", val.0, val.1))

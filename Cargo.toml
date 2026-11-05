@@ -1,6 +1,6 @@
 [workspace]
 package.version = "1.0.0"
-package.edition = "2021"
+package.edition = "2024"
 package.authors = [
     "Anuradha Wickramarachchi <anuradhawick@gmail.com>",
     "Vijini Mallawaarachchi <viji.mallawaarachchi@gmail.com>",
@@ -25,11 +25,11 @@ resolver = "2"
 
 [workspace.dependencies]
 rayon = "1.12.0"
-memmap2 = "0.9.11"
-pyo3 = { version = "0.29.0" }
-clap = { version = "4.6.1" }
-scc = "3.8.3"
+memmap2 = "0.9.12"
+pyo3 = { version = "0.30.1" }
+clap = { version = "4.6.7" }
+scc = "3.8.8"
 indicatif = "0.18.6"
 bio = "4.0.1"
-flate2 = "1.1.9"
-ruint = { version = "1.18.0", default-features = false }
+flate2 = "1.1.10"
+ruint = { version = "1.21.1", default-features = false }

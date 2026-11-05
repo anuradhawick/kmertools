@@ -70,7 +70,7 @@ impl OligoCgrComputer {
         } else {
             SeqFormat::Fastq
         };
-        let records = Sequences::new(format, reader).unwrap();
+        let records = Sequences::new(format, reader);
         let file = File::create(&self.out_path)
             .map_err(|_| format!("Unable to write to file: {}", self.out_path))?;
         let mut out_buffer = BufWriter::new(file);
@@ -89,10 +89,10 @@ impl OligoCgrComputer {
                     let result = buffer
                         .par_iter()
                         .map(|seq| {
-                            let kvec = self.vectorise_one(&seq.seq).unwrap();
+                            let kvec = self.vectorise_one(seq.seq.as_bytes()).unwrap();
                             let kvec_str: Vec<String> = kvec
                                 .iter()
-                                .map(|val| format!("({},{},{})", val.0 .0, val.0 .1, val.1))
+                                .map(|val| format!("({},{},{})", val.0.0, val.0.1, val.1))
                                 .collect();
                             format!("{}\n", kvec_str.join(" "))
                         })
@@ -202,8 +202,8 @@ mod tests {
         let res = cgr
             .vectorise_one("aaaatgatgaaatagagagactttattaa".as_bytes())
             .unwrap();
-        assert_eq!(res[0].0 .0, 0.5);
-        assert_eq!(res[0].0 .1, 0.5);
+        assert_eq!(res[0].0.0, 0.5);
+        assert_eq!(res[0].0.1, 0.5);
         assert_eq!(res[0].1, 1.0 / (29 - 4 + 1) as f64);
     }
 
@@ -214,8 +214,8 @@ mod tests {
         let res = cgr
             .vectorise_one("aaaatgatgaaatagagagactttattaa".as_bytes())
             .unwrap();
-        assert_eq!(res[0].0 .0, 0.5);
-        assert_eq!(res[0].0 .1, 0.5);
+        assert_eq!(res[0].0.0, 0.5);
+        assert_eq!(res[0].0.1, 0.5);
         assert_eq!(res[0].1, 1.0);
     }
 

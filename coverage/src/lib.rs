@@ -1,5 +1,5 @@
 use counter::CountComputer;
-use kmer::{kmer::KmerGenerator, KmerU1024, KmerU2048, KmerU256, KmerU512, KmerWord};
+use kmer::{KmerU256, KmerU512, KmerU1024, KmerU2048, KmerWord, kmer::KmerGenerator};
 use ktio::seq::{SeqFormat, Sequences};
 use rayon::prelude::*;
 use std::{
@@ -122,7 +122,7 @@ impl CovComputer {
 
         let reader = ktio::seq::get_reader(&self.in_path).unwrap();
         let format = SeqFormat::get(&self.in_path).unwrap();
-        let records = Sequences::new(format, reader).unwrap();
+        let records = Sequences::new(format, reader);
         let file = File::create(vec_path).unwrap();
         let mut out_buffer = BufWriter::new(file);
         let pool = rayon::ThreadPoolBuilder::new()
@@ -143,7 +143,7 @@ impl CovComputer {
                         let result = buffer
                             .par_iter()
                             .map(|seq| {
-                                let kvec = self.vectorise_one(&seq.seq, &counts);
+                                let kvec = self.vectorise_one(seq.seq.as_bytes(), &counts);
                                 // optimise this with pre-sized string
                                 let kvec_str: Vec<String> = kvec
                                     .iter()
@@ -170,7 +170,7 @@ impl CovComputer {
                     let result = buffer
                         .par_iter()
                         .map(|seq| {
-                            let kvec = self.vectorise_one(&seq.seq, &counts);
+                            let kvec = self.vectorise_one(seq.seq.as_bytes(), &counts);
                             let kvec_str: Vec<String> = kvec
                                 .iter()
                                 .map(|val| {

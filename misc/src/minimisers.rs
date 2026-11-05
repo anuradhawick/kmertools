@@ -1,14 +1,14 @@
 use indicatif::ProgressBar;
 use kmer::{
-    minimiser::MinimiserGenerator, numeric_to_kmer, KmerU1024, KmerU2048, KmerU256, KmerU512,
-    KmerWord,
+    KmerU256, KmerU512, KmerU1024, KmerU2048, KmerWord, minimiser::MinimiserGenerator,
+    numeric_to_kmer,
 };
 use ktio::seq::*;
 use scc::HashMap as SccMap;
 use std::{
     fs,
     io::{BufReader, BufWriter, Read, Write},
-    sync::{atomic::AtomicU64, Arc, Mutex},
+    sync::{Arc, Mutex, atomic::AtomicU64},
 };
 
 pub fn bin_sequences(wsize: usize, msize: usize, in_path: &str, out_path: &str, threads: usize) {
@@ -36,8 +36,7 @@ fn bin_sequences_with<K: KmerWord>(
     }
     let format = SeqFormat::get(in_path).unwrap();
     let reader = ktio::seq::get_reader(in_path).unwrap();
-    let records: Sequences<BufReader<Box<dyn Read + Sync + Send>>> =
-        Sequences::new(format, reader).unwrap();
+    let records: Sequences<BufReader<Box<dyn Read + Sync + Send>>> = Sequences::new(format, reader);
     let pbar = ProgressBar::new_spinner();
     let result: SccMap<String, Vec<(String, usize, usize)>> = SccMap::new();
     let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
@@ -63,9 +62,13 @@ fn bin_sequences_with<K: KmerWord>(
                     };
                     if let Some(record) = record {
                         let mgen = if wsize == 0 {
-                            MinimiserGenerator::<K>::new(&record.seq, record.seq.len(), msize)
+                            MinimiserGenerator::<K>::new(
+                                record.seq.as_bytes(),
+                                record.seq.len(),
+                                msize,
+                            )
                         } else {
-                            MinimiserGenerator::<K>::new(&record.seq, wsize, msize)
+                            MinimiserGenerator::<K>::new(record.seq.as_bytes(), wsize, msize)
                         };
                         for (k, s, e) in mgen {
                             result_arc_clone
@@ -130,8 +133,7 @@ fn seq_to_min_with<K: KmerWord>(
     }
     let format = SeqFormat::get(in_path).unwrap();
     let reader = ktio::seq::get_reader(in_path).unwrap();
-    let records: Sequences<BufReader<Box<dyn Read + Sync + Send>>> =
-        Sequences::new(format, reader).unwrap();
+    let records: Sequences<BufReader<Box<dyn Read + Sync + Send>>> = Sequences::new(format, reader);
     let pbar = ProgressBar::new_spinner();
     let pool: rayon::ThreadPool = rayon::ThreadPoolBuilder::new()
         .num_threads(threads)
@@ -157,9 +159,13 @@ fn seq_to_min_with<K: KmerWord>(
                     };
                     if let Some(record) = record {
                         let mgen = if wsize == 0 {
-                            MinimiserGenerator::<K>::new(&record.seq, record.seq.len(), msize)
+                            MinimiserGenerator::<K>::new(
+                                record.seq.as_bytes(),
+                                record.seq.len(),
+                                msize,
+                            )
                         } else {
-                            MinimiserGenerator::<K>::new(&record.seq, wsize, msize)
+                            MinimiserGenerator::<K>::new(record.seq.as_bytes(), wsize, msize)
                         };
                         let mut mins = Vec::new();
                         mins.push(record.id);

@@ -1,12 +1,12 @@
 use kmer::{
-    kmer::KmerGenerator as RsKmerGenerator, kmer_to_numeric, numeric_to_kmer, KmerU1024, KmerU2048,
-    KmerU256, KmerU512, KmerWord,
+    KmerU256, KmerU512, KmerU1024, KmerU2048, KmerWord, kmer::KmerGenerator as RsKmerGenerator,
+    kmer_to_numeric, numeric_to_kmer,
 };
 use pyo3::{
+    IntoPyObjectExt,
     exceptions::PyValueError,
     prelude::*,
     types::{PyAnyMethods, PyBytes, PyBytesMethods, PyInt},
-    IntoPyObjectExt,
 };
 use std::{collections::HashMap, mem::transmute, sync::Arc};
 
