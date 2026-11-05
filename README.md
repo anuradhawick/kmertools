@@ -135,7 +135,7 @@ If you use `kmertools` please cite as follows.
   author = {Wickramarachchi, Anuradha and Mallawaarachchi, Vijini},
   title = {{kmertools: DNA Vectorisation Tool}},
   url = {https://github.com/anuradhawick/kmertools},
-  version = {0.1.4}
+  version = {1.1.0}
 }
 ```
 

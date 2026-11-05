@@ -8,5 +8,5 @@ authors:
   given-names: "Vijini"
   orcid: "https://orcid.org/0000-0002-2651-8719"
 title: "kmertools: DNA Vectorisation Tool"
-version: 0.1.0
+version: 1.1.0
 url: "https://github.com/anuradhawick/kmertools"
